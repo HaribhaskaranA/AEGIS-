@@ -342,6 +342,18 @@ function handleImageFileSelected(file) {
   selectedImageFile = file;
   latestApiDetectionPayload = null;
 
+  // Ensure input[type="file"].files[0] is populated even when selected via drag-and-drop
+  try {
+    const input = document.querySelector('input[type="file"]');
+    if (typeof DataTransfer !== 'undefined' && input && (!input.files || input.files[0] !== file)) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+    }
+  } catch (_) {
+    // Fallback: selectedImageFile holds the File reference
+  }
+
   const sizeKb = (file.size / 1024).toFixed(1);
   rcSelectedFileLabel.textContent = `${file.name} (${sizeKb} KB)`;
   rcSelectedFileLabel.style.color = '#f1f5f9';
@@ -406,21 +418,21 @@ function clearOverlayCanvas() {
 
 /**
  * Ensure the upload payload is an actual File/Blob object (never a string, URL, or raw DOM element).
- * If an HTMLCanvasElement is provided, convert it to a PNG File before uploading.
+ * If an HTMLCanvasElement is provided, convert it to a JPEG File before uploading.
  */
 async function ensureValidImageFile(source) {
   if (source instanceof File) {
     return source;
   }
   if (source instanceof Blob) {
-    return new File([source], 'thermal-upload.png', { type: source.type || 'image/png' });
+    return new File([source], 'image.jpg', { type: source.type || 'image/jpeg' });
   }
   if (typeof HTMLCanvasElement !== 'undefined' && source instanceof HTMLCanvasElement) {
-    const blob = await new Promise((resolve) => source.toBlob(resolve, 'image/png'));
+    const blob = await new Promise((resolve) => source.toBlob(resolve, 'image/jpeg', 0.92));
     if (!blob) throw new Error('Failed to convert canvas snapshot to image Blob.');
-    return new File([blob], 'canvas-capture.png', { type: 'image/png' });
+    return new File([blob], 'image.jpg', { type: 'image/jpeg' });
   }
-  throw new Error('No valid image File object selected. Please choose a JPG, PNG, or WEBP file.');
+  throw new Error('Please select an image before running detection.');
 }
 
 /**
@@ -428,19 +440,9 @@ async function ensureValidImageFile(source) {
  * Do not manually set the multipart Content-Type header.
  */
 async function runThermalDetection() {
-  const fileFromInput = (rcImageInput && rcImageInput.files && rcImageInput.files[0]) || selectedImageFile;
-  if (!fileFromInput) {
-    setAlert('error', 'Please select an image file before running detection.');
-    return;
-  }
-
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    setAlert('error', 'API Base URL is empty. Enter the FastAPI ngrok URL.');
-    return;
-  }
-
+  const baseUrl = getBaseUrl() || 'https://slam-slapping-gusty.ngrok-free.dev';
   const submittingDrone = getSelectedSimulatedDrone();
+
   btnRunDetection.disabled = true;
   btnRunDetection.textContent = '⏳ RUNNING AI DETECTION...';
 
@@ -448,7 +450,14 @@ async function runThermalDetection() {
   const timer = setTimeout(() => controller.abort(), DETECT_TIMEOUT_MS);
 
   try {
-    const imageFile = await ensureValidImageFile(fileFromInput);
+    const input = document.querySelector('input[type="file"]');
+    const rawCandidate = input?.files?.[0] || selectedImageFile;
+
+    if (!rawCandidate) {
+      throw new Error('Please select an image before running detection.');
+    }
+
+    const imageFile = await ensureValidImageFile(rawCandidate);
     selectedImageFile = imageFile;
 
     setAlert(
@@ -458,44 +467,41 @@ async function runThermalDetection() {
     );
 
     const formData = new FormData();
-    formData.append("image", imageFile, imageFile.name || "upload.png");
+    formData.append('image', imageFile, imageFile.name || 'image.jpg');
 
     const response = await fetch(`${baseUrl}/detect`, {
-      method: "POST",
+      method: 'POST',
       body: formData,
       signal: controller.signal
     });
     clearTimeout(timer);
 
-    const rawText = await response.text();
-    let data;
-    try {
-      data = JSON.parse(rawText);
-    } catch {
-      throw new Error('Server returned non-JSON output. Verify the ngrok tunnel is active.');
-    }
-
+    const responseText = await response.text();
     rcRawEndpointTag.textContent = `POST ${baseUrl}/detect (HTTP ${response.status})`;
-    rcRawJsonPre.textContent = JSON.stringify(data, null, 2);
+    try {
+      rcRawJsonPre.textContent = JSON.stringify(JSON.parse(responseText), null, 2);
+    } catch {
+      rcRawJsonPre.textContent = responseText;
+    }
 
     if (!response.ok) {
-      const apiDetail = data && data.detail
-        ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail))
-        : `HTTP ${response.status}`;
-      throw new Error(apiDetail);
+      throw new Error(`Detection API returned HTTP ${response.status}: ${responseText}`);
     }
 
-    latestApiDetectionPayload = data;
+    const result = JSON.parse(responseText);
+    console.log('Detection result:', result);
+
+    latestApiDetectionPayload = result;
     rcHeaderApiDot.className = 'rc-status-dot online';
     rcHeaderApiText.textContent = 'API: ONLINE';
 
     // Display actual response fields & store candidate records
-    renderActualDetectionResponse(data, submittingDrone);
-    const createdRecords = appendDetectionsToCandidateQueue(data, submittingDrone, imageFile.name);
+    renderActualDetectionResponse(result, submittingDrone);
+    const createdRecords = appendDetectionsToCandidateQueue(result, submittingDrone, imageFile.name);
 
     setAlert(
       'success',
-      `POST /detect succeeded (status: "${data.status ?? 'ok'}"). ${createdRecords.length} unverified candidate record(s) added to the review queue.`,
+      `POST /detect succeeded (status: "${result.status ?? 'ok'}"). ${createdRecords.length} unverified candidate record(s) added to the review queue.`,
       false
     );
   } catch (err) {
@@ -507,7 +513,8 @@ async function runThermalDetection() {
     rcHeaderApiText.textContent = 'API: OFFLINE';
     setAlert('error', `Backend offline or POST /detect failed: ${msg}`, false, runThermalDetection);
   } finally {
-    btnRunDetection.disabled = !selectedImageFile;
+    const input = document.querySelector('input[type="file"]');
+    btnRunDetection.disabled = !(input?.files?.[0] || selectedImageFile);
     btnRunDetection.textContent = '🎯 RUN DETECTION (POST /detect)';
   }
 }

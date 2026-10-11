@@ -737,13 +737,25 @@
      */
     function handleFileSelected(file) {
       if (!file) return;
-      if (!file.type.startsWith('image/')) {
+      if (!file.type || !file.type.startsWith('image/')) {
         setStatusBanner('error', 'Selected file is not a valid image. Please upload a JPG, PNG, or WEBP image.');
         return;
       }
 
       selectedImageFile = file;
       lastDetectionResponse = null;
+
+      // Ensure input[type="file"].files[0] is populated even when selected via drag-and-drop
+      try {
+        const input = document.querySelector('input[type="file"]');
+        if (typeof DataTransfer !== 'undefined' && input && (!input.files || input.files[0] !== file)) {
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          input.files = dt.files;
+        }
+      } catch (_) {
+        // Fallback: selectedImageFile holds the File reference
+      }
 
       const sizeKb = (file.size / 1024).toFixed(1);
       selectedFileMetaBadge.textContent = `${file.name} (${sizeKb} KB)`;
@@ -825,14 +837,14 @@
         return source;
       }
       if (source instanceof Blob) {
-        return new File([source], 'thermal-upload.png', { type: source.type || 'image/png' });
+        return new File([source], 'image.jpg', { type: source.type || 'image/jpeg' });
       }
       if (typeof HTMLCanvasElement !== 'undefined' && source instanceof HTMLCanvasElement) {
-        const blob = await new Promise((resolve) => source.toBlob(resolve, 'image/png'));
+        const blob = await new Promise((resolve) => source.toBlob(resolve, 'image/jpeg', 0.92));
         if (!blob) throw new Error('Failed to convert canvas snapshot to image Blob.');
-        return new File([blob], 'canvas-capture.png', { type: 'image/png' });
+        return new File([blob], 'image.jpg', { type: 'image/jpeg' });
       }
-      throw new Error('No valid image File object selected. Please choose a JPG, PNG, or WEBP file.');
+      throw new Error('Please select an image before running detection.');
     }
 
     /**
@@ -840,17 +852,7 @@
      * Do NOT manually set the multipart Content-Type header; the browser generates the multipart boundary.
      */
     async function runDetection() {
-      const fileFromInput = (imageFileInput && imageFileInput.files && imageFileInput.files[0]) || selectedImageFile;
-      if (!fileFromInput) {
-        setStatusBanner('error', 'Please select an image first.');
-        return;
-      }
-
-      const baseUrl = getCleanBaseUrl();
-      if (!baseUrl) {
-        setStatusBanner('error', 'Please enter a valid API Base URL.');
-        return;
-      }
+      const baseUrl = getCleanBaseUrl() || 'https://slam-slapping-gusty.ngrok-free.dev';
 
       btnRunDetection.disabled = true;
       btnRunDetection.textContent = '⏳ RUNNING DETECTION...';
@@ -859,46 +861,56 @@
       const timer = setTimeout(() => controller.abort(), DETECT_TIMEOUT_MS);
 
       try {
-        const imageFile = await ensureValidImageFile(fileFromInput);
+        const input = document.querySelector('input[type="file"]');
+        const rawCandidate = input?.files?.[0] || selectedImageFile;
+
+        if (!rawCandidate) {
+          throw new Error('Please select an image before running detection.');
+        }
+
+        const imageFile = await ensureValidImageFile(rawCandidate);
         selectedImageFile = imageFile;
 
-        setStatusBanner('loading', `Uploading "${imageFile.name}" (${imageFile.size} bytes) to POST ${baseUrl}/detect (field: "image")...`, true);
+        setStatusBanner(
+          'loading',
+          `Uploading "${imageFile.name}" (${imageFile.size} bytes) to POST ${baseUrl}/detect (multipart field: "image")...`,
+          true
+        );
 
         const formData = new FormData();
-        formData.append("image", imageFile, imageFile.name || "upload.png");
+        formData.append('image', imageFile, imageFile.name || 'image.jpg');
 
         const response = await fetch(`${baseUrl}/detect`, {
-          method: "POST",
+          method: 'POST',
           body: formData,
           signal: controller.signal
         });
         clearTimeout(timer);
 
-        const rawText = await response.text();
-        let data;
-        try {
-          data = JSON.parse(rawText);
-        } catch {
-          throw new Error('Backend returned non-JSON response. The ngrok tunnel may have disconnected.');
-        }
-
+        const responseText = await response.text();
         rawEndpointSourceLabel.textContent = `POST ${baseUrl}/detect (HTTP ${response.status})`;
-        rawJsonOutput.textContent = JSON.stringify(data, null, 2);
+        try {
+          rawJsonOutput.textContent = JSON.stringify(JSON.parse(responseText), null, 2);
+        } catch {
+          rawJsonOutput.textContent = responseText;
+        }
 
         if (!response.ok) {
-          const detailMsg = data && data.detail ? JSON.stringify(data.detail) : `HTTP ${response.status}`;
-          throw new Error(detailMsg);
+          throw new Error(`Detection API returned HTTP ${response.status}: ${responseText}`);
         }
 
-        lastDetectionResponse = data;
-        renderDetectionResponse(data);
+        const result = JSON.parse(responseText);
+        console.log('Detection result:', result);
+
+        lastDetectionResponse = result;
+        renderDetectionResponse(result);
 
         headerApiDot.style.background = 'var(--accent-emerald)';
         headerApiStatusText.textContent = 'API: ONLINE';
 
-        const count = typeof data.detection_count === 'number'
-          ? data.detection_count
-          : (Array.isArray(data.detections) ? data.detections.length : 0);
+        const count = typeof result.detection_count === 'number'
+          ? result.detection_count
+          : (Array.isArray(result.detections) ? result.detections.length : 0);
 
         setStatusBanner(
           'success',
@@ -919,7 +931,8 @@
           runDetection
         );
       } finally {
-        btnRunDetection.disabled = !selectedImageFile;
+        const input = document.querySelector('input[type="file"]');
+        btnRunDetection.disabled = !(input?.files?.[0] || selectedImageFile);
         btnRunDetection.textContent = '🎯 RUN DETECTION (POST /detect)';
       }
     }
