@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>AEGIS SAR Console | AI Candidate Detection Inspector</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20261011-v3">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233ecf8e'><polygon points='12 2 19 21 12 17 5 21 12 2'/></svg>">
   <style>
     body {
@@ -313,7 +316,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
         AI DETECTION
       </span>
-      <a href="rescue-command.html" class="nav-tab" style="text-decoration: none; border-color: rgba(249, 115, 22, 0.45); color: #fb923c;">
+      <a href="rescue-command.html?v=20261011-v3" class="nav-tab" style="text-decoration: none; border-color: rgba(249, 115, 22, 0.45); color: #fb923c;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 19 21 12 17 5 21 12 2"/></svg>
         RESCUE COMMAND
       </a>
@@ -861,7 +864,7 @@
       const timer = setTimeout(() => controller.abort(), DETECT_TIMEOUT_MS);
 
       try {
-        const input = document.querySelector('input[type="file"]');
+        const input = document.getElementById('imageFileInput') || document.querySelector('input[type="file"]');
         const rawCandidate = input?.files?.[0] || selectedImageFile;
 
         if (!rawCandidate) {
@@ -879,9 +882,14 @@
 
         const formData = new FormData();
         formData.append('image', imageFile, imageFile.name || 'image.jpg');
+        formData.append('file', imageFile, imageFile.name || 'image.jpg');
 
         const response = await fetch(`${baseUrl}/detect`, {
           method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          },
           body: formData,
           signal: controller.signal
         });
@@ -931,7 +939,7 @@
           runDetection
         );
       } finally {
-        const input = document.querySelector('input[type="file"]');
+        const input = document.getElementById('imageFileInput') || document.querySelector('input[type="file"]');
         btnRunDetection.disabled = !(input?.files?.[0] || selectedImageFile);
         btnRunDetection.textContent = '🎯 RUN DETECTION (POST /detect)';
       }
@@ -983,9 +991,12 @@
             ? `${(rawConf * 100).toFixed(2)}% (${rawConf})`
             : String(det.confidence ?? '--');
 
-          const bboxArr = Array.isArray(det.bbox_xyxy)
-            ? det.bbox_xyxy.map(n => Number(n).toFixed(2)).join(', ')
-            : JSON.stringify(det.bbox_xyxy ?? []);
+          const rawBbox = Array.isArray(det.bbox)
+            ? det.bbox
+            : (Array.isArray(det.bbox_xyxy) ? det.bbox_xyxy : null);
+          const bboxArr = rawBbox
+            ? rawBbox.map(n => Number(n).toFixed(2)).join(', ')
+            : JSON.stringify(det.bbox ?? det.bbox_xyxy ?? []);
 
           const candidateGpsText = formatGpsField(det.gps_coordinates ?? data.gps_coordinates ?? null);
           const candidateStatusText = det.status ? String(det.status) : 'UNVERIFIED CANDIDATE — HUMAN REVIEW REQUIRED';
@@ -1007,7 +1018,7 @@
     }
 
     /**
-     * 5. Draw bbox_xyxy [x1, y1, x2, y2] on Overlay Canvas
+     * 5. Draw bbox / bbox_xyxy [x1, y1, x2, y2] on Overlay Canvas
      */
     function drawCandidateBoundingBoxes(data) {
       clearOverlayCanvas();
@@ -1024,8 +1035,11 @@
       const scaleY = dispH / srcH;
 
       data.detections.forEach((det, idx) => {
-        if (!Array.isArray(det.bbox_xyxy) || det.bbox_xyxy.length < 4) return;
-        const [x1, y1, x2, y2] = det.bbox_xyxy.map(Number);
+        const rawBbox = Array.isArray(det.bbox)
+          ? det.bbox
+          : (Array.isArray(det.bbox_xyxy) ? det.bbox_xyxy : null);
+        if (!rawBbox || rawBbox.length < 4) return;
+        const [x1, y1, x2, y2] = rawBbox.map(Number);
 
         const rx = x1 * scaleX;
         const ry = y1 * scaleY;

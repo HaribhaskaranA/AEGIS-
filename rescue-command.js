@@ -450,7 +450,7 @@ async function runThermalDetection() {
   const timer = setTimeout(() => controller.abort(), DETECT_TIMEOUT_MS);
 
   try {
-    const input = document.querySelector('input[type="file"]');
+    const input = document.getElementById('rcImageInput') || document.querySelector('input[type="file"]');
     const rawCandidate = input?.files?.[0] || selectedImageFile;
 
     if (!rawCandidate) {
@@ -468,9 +468,14 @@ async function runThermalDetection() {
 
     const formData = new FormData();
     formData.append('image', imageFile, imageFile.name || 'image.jpg');
+    formData.append('file', imageFile, imageFile.name || 'image.jpg');
 
     const response = await fetch(`${baseUrl}/detect`, {
       method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      },
       body: formData,
       signal: controller.signal
     });
@@ -513,7 +518,7 @@ async function runThermalDetection() {
     rcHeaderApiText.textContent = 'API: OFFLINE';
     setAlert('error', `Backend offline or POST /detect failed: ${msg}`, false, runThermalDetection);
   } finally {
-    const input = document.querySelector('input[type="file"]');
+    const input = document.getElementById('rcImageInput') || document.querySelector('input[type="file"]');
     btnRunDetection.disabled = !(input?.files?.[0] || selectedImageFile);
     btnRunDetection.textContent = '🎯 RUN DETECTION (POST /detect)';
   }
@@ -521,7 +526,7 @@ async function runThermalDetection() {
 
 /**
  * Render Actual Response Fields from POST /detect
- * Fields: status, detection_count, detections, class, confidence, bbox_xyxy, image_width, image_height, gps_coordinates, warning
+ * Fields: status, detection_count, detections, class, confidence, bbox / bbox_xyxy, image_width, image_height, gps_coordinates, warning
  */
 function renderActualDetectionResponse(data, submittingDrone) {
   rcOutStatus.textContent = data.status !== undefined ? String(data.status) : '--';
@@ -571,9 +576,12 @@ function renderActualDetectionResponse(data, submittingDrone) {
       const confText = confNum !== null
         ? `${(confNum * 100).toFixed(2)}% (${confNum})`
         : String(det.confidence ?? '--');
-      const bboxText = Array.isArray(det.bbox_xyxy)
-        ? `[${det.bbox_xyxy.map(n => Number(n).toFixed(2)).join(', ')}]`
-        : JSON.stringify(det.bbox_xyxy ?? []);
+      const rawBbox = Array.isArray(det.bbox)
+        ? det.bbox
+        : (Array.isArray(det.bbox_xyxy) ? det.bbox_xyxy : null);
+      const bboxText = rawBbox
+        ? `[${rawBbox.map(n => Number(n).toFixed(2)).join(', ')}]`
+        : JSON.stringify(det.bbox ?? det.bbox_xyxy ?? []);
       const detGpsText = formatGpsCoordinates(det.gps_coordinates ?? data.gps_coordinates ?? null);
 
       tr.innerHTML = `
@@ -605,8 +613,11 @@ function drawDetectionsOnCanvas(data) {
   const scaleY = dispH / srcH;
 
   data.detections.forEach((det, idx) => {
-    if (!Array.isArray(det.bbox_xyxy) || det.bbox_xyxy.length < 4) return;
-    const [x1, y1, x2, y2] = det.bbox_xyxy.map(Number);
+    const rawBbox = Array.isArray(det.bbox)
+      ? det.bbox
+      : (Array.isArray(det.bbox_xyxy) ? det.bbox_xyxy : null);
+    if (!rawBbox || rawBbox.length < 4) return;
+    const [x1, y1, x2, y2] = rawBbox.map(Number);
 
     const rx = x1 * scaleX;
     const ry = y1 * scaleY;
@@ -675,6 +686,9 @@ function appendDetectionsToCandidateQueue(apiData, submittingDrone, imageFileNam
   const created = [];
 
   detectionsArr.forEach(det => {
+    const rawBbox = Array.isArray(det.bbox)
+      ? det.bbox
+      : (Array.isArray(det.bbox_xyxy) ? det.bbox_xyxy : []);
     const record = {
       candidateId: nextCandidateSequenceId(),
       timestamp: nowIso,
@@ -683,7 +697,7 @@ function appendDetectionsToCandidateQueue(apiData, submittingDrone, imageFileNam
       imageName: imageFileName || 'uploaded_image',
       modelClass: det.class !== undefined ? String(det.class) : 'Person',
       confidence: typeof det.confidence === 'number' ? det.confidence : Number(det.confidence || 0),
-      bbox_xyxy: Array.isArray(det.bbox_xyxy) ? det.bbox_xyxy : [],
+      bbox_xyxy: rawBbox,
       candidateGps: 'Candidate GPS: unavailable',
       distance: 'unavailable',
       eta: 'unavailable',
