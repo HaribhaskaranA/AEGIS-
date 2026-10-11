@@ -7,7 +7,12 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>AEGIS SAR Console | AI Candidate Detection Inspector</title>
-  <link rel="stylesheet" href="styles.css?v=20261011-v3">
+  <script>
+    if (window.location.hostname.endsWith('.vercel.app') && window.location.hostname !== 'aegissar.vercel.app') {
+      window.location.replace('https://aegissar.vercel.app' + window.location.pathname + window.location.search + window.location.hash);
+    }
+  </script>
+  <link rel="stylesheet" href="styles.css?v=20261011-v4">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233ecf8e'><polygon points='12 2 19 21 12 17 5 21 12 2'/></svg>">
   <style>
     body {
@@ -864,11 +869,11 @@
       const timer = setTimeout(() => controller.abort(), DETECT_TIMEOUT_MS);
 
       try {
-        const input = document.getElementById('imageFileInput') || document.querySelector('input[type="file"]');
-        const rawCandidate = input?.files?.[0] || selectedImageFile;
+        const actualFileInput = document.getElementById('imageFileInput') || document.querySelector('input[type="file"]');
+        const rawCandidate = actualFileInput?.files?.[0] || selectedImageFile;
 
         if (!rawCandidate) {
-          throw new Error('Please select an image before running detection.');
+          throw new Error('Please upload a thermal image before running detection.');
         }
 
         const imageFile = await ensureValidImageFile(rawCandidate);
@@ -881,15 +886,10 @@
         );
 
         const formData = new FormData();
-        formData.append('image', imageFile, imageFile.name || 'image.jpg');
-        formData.append('file', imageFile, imageFile.name || 'image.jpg');
+        formData.append('image', imageFile, imageFile.name);
 
         const response = await fetch(`${baseUrl}/detect`, {
           method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'ngrok-skip-browser-warning': 'true'
-          },
           body: formData,
           signal: controller.signal
         });

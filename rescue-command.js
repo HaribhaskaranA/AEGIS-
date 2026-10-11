@@ -450,11 +450,11 @@ async function runThermalDetection() {
   const timer = setTimeout(() => controller.abort(), DETECT_TIMEOUT_MS);
 
   try {
-    const input = document.getElementById('rcImageInput') || document.querySelector('input[type="file"]');
-    const rawCandidate = input?.files?.[0] || selectedImageFile;
+    const actualFileInput = document.getElementById('rcImageInput') || document.querySelector('input[type="file"]');
+    const rawCandidate = actualFileInput?.files?.[0] || selectedImageFile;
 
     if (!rawCandidate) {
-      throw new Error('Please select an image before running detection.');
+      throw new Error('Please upload a thermal image before running detection.');
     }
 
     const imageFile = await ensureValidImageFile(rawCandidate);
@@ -467,15 +467,10 @@ async function runThermalDetection() {
     );
 
     const formData = new FormData();
-    formData.append('image', imageFile, imageFile.name || 'image.jpg');
-    formData.append('file', imageFile, imageFile.name || 'image.jpg');
+    formData.append('image', imageFile, imageFile.name);
 
     const response = await fetch(`${baseUrl}/detect`, {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      },
       body: formData,
       signal: controller.signal
     });

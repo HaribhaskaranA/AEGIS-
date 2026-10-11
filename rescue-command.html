@@ -7,7 +7,12 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>AEGIS SAR | Multi-Drone Rescue Command Dashboard</title>
-  <link rel="stylesheet" href="rescue-command.css?v=20261011-v3">
+  <script>
+    if (window.location.hostname.endsWith('.vercel.app') && window.location.hostname !== 'aegissar.vercel.app') {
+      window.location.replace('https://aegissar.vercel.app' + window.location.pathname + window.location.search + window.location.hash);
+    }
+  </script>
+  <link rel="stylesheet" href="rescue-command.css?v=20261011-v4">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f97316'><polygon points='12 2 19 21 12 17 5 21 12 2'/></svg>">
 </head>
 <body class="rescue-command-body">
@@ -391,6 +396,6 @@
 
   </main>
 
-  <script src="rescue-command.js?v=20261011-v3"></script>
+  <script src="rescue-command.js?v=20261011-v4"></script>
 </body>
 </html>
