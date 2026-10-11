@@ -398,7 +398,7 @@
             <span class="health-metric-val" id="healthStatusVal">--</span>
           </div>
           <div class="health-metric-box">
-            <span class="health-metric-lbl">DETECTOR LOADED (detector_loaded)</span>
+            <span class="health-metric-lbl">MODEL LOADED (model_loaded)</span>
             <span class="health-metric-val" id="healthDetectorLoadedVal">--</span>
           </div>
           <div class="health-metric-box">
@@ -432,7 +432,7 @@
             Click to select an image file or drag &amp; drop here
           </div>
           <div class="mono" style="font-size: 0.68rem; color: var(--text-muted);">
-            Sent as multipart/form-data field <code>"file"</code> to <code>POST /detect</code> (JPG, PNG, WEBP)
+            Sent as multipart/form-data field <code>"image"</code> to <code>POST /detect</code> (JPG, PNG, WEBP)
           </div>
         </div>
 
@@ -486,7 +486,7 @@
         <div class="kpi-row-grid mono" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
           <div class="kpi-card" style="padding: 10px 12px;">
             <span class="kpi-lbl">API STATUS (status)</span>
-            <span class="kpi-val" id="resStatusVal" style="font-size: 0.98rem; color: #fff;">--</span>
+            <span class="kpi-val" id="resStatusVal" style="font-size: 0.78rem; line-height: 1.25; color: #fff;">--</span>
           </div>
           <div class="kpi-card" style="padding: 10px 12px;">
             <span class="kpi-lbl">CANDIDATE COUNT (detection_count)</span>
@@ -547,9 +547,12 @@
     /**
      * AEGIS SAR AI Candidate Detection Client
      * Connects to Google Colab FastAPI service via ngrok:
-     * - GET  /health -> { status, detector_loaded, classes }
-     * - POST /detect -> FormData("file") -> { status, image_width, image_height, detections: [{ class, confidence, bbox_xyxy }], detection_count, gps_coordinates, warning }
+     * - GET  /health -> { status: "ok", model_loaded: true, classes: { "0": "Person" } }
+     * - POST /detect -> FormData("image") -> { image_width, image_height, detection_count, detections: [{ class, confidence, bbox_xyxy, status }], status, gps_coordinates, warning }
      */
+    const HEALTH_TIMEOUT_MS = 10000;
+    const DETECT_TIMEOUT_MS = 35000;
+
     const apiBaseUrlInput = document.getElementById('apiBaseUrlInput');
     const apiDocsLink = document.getElementById('apiDocsLink');
     const btnCheckHealth = document.getElementById('btnCheckHealth');
@@ -644,14 +647,19 @@
       headerApiStatusText.textContent = 'API: CHECKING...';
       healthHttpBadge.textContent = 'CONNECTING...';
 
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
+
       try {
         const response = await fetch(`${baseUrl}/health`, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
             'ngrok-skip-browser-warning': 'true'
-          }
+          },
+          signal: controller.signal
         });
+        clearTimeout(timer);
 
         const rawText = await response.text();
         let data;
@@ -668,12 +676,15 @@
           throw new Error(`HTTP ${response.status}: ${JSON.stringify(data)}`);
         }
 
-        // Populate exact fields returned by GET /health: status, detector_loaded, classes
-        healthStatusVal.textContent = data.status !== undefined ? String(data.status) : 'unknown';
-        healthStatusVal.style.color = data.status === 'running' ? 'var(--accent-emerald)' : 'var(--accent-amber)';
+        // Populate exact fields returned by GET /health: status, model_loaded (or detector_loaded), classes
+        const statusStr = data.status !== undefined ? String(data.status) : 'unknown';
+        const isHealthyStatus = statusStr === 'ok' || statusStr === 'running';
+        healthStatusVal.textContent = statusStr;
+        healthStatusVal.style.color = isHealthyStatus ? 'var(--accent-emerald)' : 'var(--accent-amber)';
 
-        healthDetectorLoadedVal.textContent = data.detector_loaded !== undefined ? String(data.detector_loaded) : 'unknown';
-        healthDetectorLoadedVal.style.color = data.detector_loaded === true ? 'var(--accent-emerald)' : 'var(--accent-red)';
+        const loadedVal = data.model_loaded !== undefined ? data.model_loaded : data.detector_loaded;
+        healthDetectorLoadedVal.textContent = loadedVal !== undefined ? String(loadedVal) : 'unknown';
+        healthDetectorLoadedVal.style.color = loadedVal === true ? 'var(--accent-emerald)' : 'var(--accent-red)';
 
         if (data.classes && typeof data.classes === 'object') {
           const formattedClasses = Object.entries(data.classes)
@@ -690,12 +701,16 @@
         healthHttpBadge.style.color = 'var(--accent-emerald)';
 
         headerApiDot.style.background = 'var(--accent-emerald)';
-        headerApiStatusText.textContent = `API: ${String(data.status || 'ONLINE').toUpperCase()}`;
+        headerApiStatusText.textContent = `API: ${statusStr.toUpperCase()}`;
 
         if (detectionStatusBanner.classList.contains('error')) {
           setStatusBanner(null, '');
         }
       } catch (err) {
+        clearTimeout(timer);
+        const reason = err.name === 'AbortError'
+          ? 'Health check timed out after 10s'
+          : (err.message === 'Failed to fetch' ? 'Network/CORS error or ngrok tunnel offline' : err.message);
         healthStatusVal.textContent = 'BACKEND OFFLINE';
         healthStatusVal.style.color = 'var(--accent-red)';
         healthDetectorLoadedVal.textContent = 'false';
@@ -707,7 +722,7 @@
         headerApiStatusText.textContent = 'API: OFFLINE';
         setStatusBanner(
           'error',
-          `Backend offline or unreachable (${baseUrl}/health): ${err.message}. Check your Colab/ngrok session and click Retry.`,
+          `Backend offline or unreachable (${baseUrl}/health): ${reason}. Check your Colab/ngrok session and click Retry.`,
           false,
           checkApiHealth
         );
@@ -802,7 +817,7 @@
     }
 
     /**
-     * 3. Run Detection (POST /detect with FormData field "file")
+     * 3. Run Detection (POST /detect with FormData field "image" per /docs OpenAPI schema)
      * Do NOT manually set the multipart Content-Type header; browser sets boundary automatically.
      */
     async function runDetection() {
@@ -819,10 +834,14 @@
 
       btnRunDetection.disabled = true;
       btnRunDetection.textContent = '⏳ RUNNING DETECTION...';
-      setStatusBanner('loading', `Uploading "${selectedImageFile.name}" to POST ${baseUrl}/detect (field: "file")...`, true);
+      setStatusBanner('loading', `Uploading "${selectedImageFile.name}" to POST ${baseUrl}/detect (field: "image")...`, true);
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), DETECT_TIMEOUT_MS);
 
       try {
         const formData = new FormData();
+        formData.append('image', selectedImageFile);
         formData.append('file', selectedImageFile);
 
         const response = await fetch(`${baseUrl}/detect`, {
@@ -831,8 +850,10 @@
             'Accept': 'application/json',
             'ngrok-skip-browser-warning': 'true'
           },
-          body: formData
+          body: formData,
+          signal: controller.signal
         });
+        clearTimeout(timer);
 
         const rawText = await response.text();
         let data;
@@ -863,11 +884,15 @@
           false
         );
       } catch (err) {
+        clearTimeout(timer);
+        const reason = err.name === 'AbortError'
+          ? 'Detection request timed out after 35s'
+          : (err.message === 'Failed to fetch' ? 'Network/CORS error or ngrok tunnel offline' : err.message);
         headerApiDot.style.background = 'var(--accent-red)';
         headerApiStatusText.textContent = 'API: ERROR / OFFLINE';
         setStatusBanner(
           'error',
-          `Backend offline or detection request failed (${baseUrl}/detect): ${err.message}`,
+          `Backend offline or detection request failed (${baseUrl}/detect): ${reason}`,
           false,
           runDetection
         );
@@ -883,7 +908,7 @@
     function renderDetectionResponse(data) {
       // 1. Top-level fields
       resStatusVal.textContent = data.status !== undefined ? String(data.status) : '--';
-      resStatusVal.style.color = data.status === 'ok' ? 'var(--accent-emerald)' : '#fff';
+      resStatusVal.style.color = data.status === 'ok' ? 'var(--accent-emerald)' : 'var(--accent-amber)';
 
       const detectionsList = Array.isArray(data.detections) ? data.detections : [];
       const countVal = data.detection_count !== undefined ? data.detection_count : detectionsList.length;

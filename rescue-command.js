@@ -273,8 +273,8 @@ async function checkApiHealth() {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    // Actual fields from GET /health: status, detector_loaded, classes
-    const isOnline = data.status === 'running' || response.ok;
+    // Actual fields from GET /health: status ("ok" or "running"), model_loaded (or detector_loaded), classes
+    const isOnline = data.status === 'ok' || data.status === 'running' || response.ok;
     rcHeaderApiDot.className = `rc-status-dot ${isOnline ? 'online' : 'offline'}`;
     rcHeaderApiText.textContent = isOnline ? 'API: ONLINE' : 'API: DEGRADED';
 
@@ -284,8 +284,9 @@ async function checkApiHealth() {
     rcHealthStatusField.textContent = data.status !== undefined ? String(data.status) : 'unknown';
     rcHealthStatusField.style.color = '#10b981';
 
-    rcHealthLoadedField.textContent = data.detector_loaded !== undefined ? String(data.detector_loaded) : 'unknown';
-    rcHealthLoadedField.style.color = data.detector_loaded === true ? '#10b981' : '#f59e0b';
+    const loadedVal = data.model_loaded !== undefined ? data.model_loaded : data.detector_loaded;
+    rcHealthLoadedField.textContent = loadedVal !== undefined ? String(loadedVal) : 'unknown';
+    rcHealthLoadedField.style.color = loadedVal === true ? '#10b981' : '#f59e0b';
 
     if (data.classes && typeof data.classes === 'object') {
       rcHealthClassesField.textContent = Object.entries(data.classes)
@@ -299,7 +300,9 @@ async function checkApiHealth() {
     }
   } catch (err) {
     clearTimeout(timer);
-    const reason = err.name === 'AbortError' ? 'Request timed out (10s)' : err.message;
+    const reason = err.name === 'AbortError'
+      ? 'Request timed out (10s)'
+      : (err.message === 'Failed to fetch' ? 'Network/CORS error or ngrok tunnel offline' : err.message);
     setHealthOffline(reason);
   } finally {
     btnCheckHealthMain.disabled = false;
@@ -402,7 +405,7 @@ function clearOverlayCanvas() {
 }
 
 /**
- * Section B3: Submit Image to POST /detect using FormData("file")
+ * Section B3: Submit Image to POST /detect using FormData("image") per /docs OpenAPI schema
  * Do not manually set the multipart Content-Type header.
  */
 async function runThermalDetection() {
@@ -422,7 +425,7 @@ async function runThermalDetection() {
   btnRunDetection.textContent = '⏳ RUNNING AI DETECTION...';
   setAlert(
     'loading',
-    `Submitting "${selectedImageFile.name}" attributed to ${submittingDrone.id} [SIMULATED] via POST ${baseUrl}/detect (FormData field: "file")...`,
+    `Submitting "${selectedImageFile.name}" attributed to ${submittingDrone.id} [SIMULATED] via POST ${baseUrl}/detect (FormData field: "image")...`,
     true
   );
 
@@ -431,6 +434,7 @@ async function runThermalDetection() {
 
   try {
     const formData = new FormData();
+    formData.append('image', selectedImageFile);
     formData.append('file', selectedImageFile);
 
     const response = await fetch(`${baseUrl}/detect`, {
@@ -477,7 +481,7 @@ async function runThermalDetection() {
     clearTimeout(timer);
     const msg = err.name === 'AbortError'
       ? 'Detection request timed out after 35 seconds. Check if Google Colab / ngrok is responsive.'
-      : err.message;
+      : (err.message === 'Failed to fetch' ? 'Network/CORS error or ngrok tunnel offline.' : err.message);
     rcHeaderApiDot.className = 'rc-status-dot offline';
     rcHeaderApiText.textContent = 'API: OFFLINE';
     setAlert('error', `Backend offline or POST /detect failed: ${msg}`, false, runThermalDetection);

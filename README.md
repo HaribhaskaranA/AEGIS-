@@ -98,9 +98,14 @@ $$\mathbf{B}_j^{(t+1)} = \mathbf{B}_k^{(t+1)} = \frac{1}{2} \left( \mathbf{B}_j^
 
 ## 🤖 Experimental AI Person Detection & Multi-Drone Rescue Command
 
-This repository includes two frontend interfaces connected to a FastAPI YOLO person-detection backend (`GET /health`, `POST /detect` via `multipart/form-data` field `file`, and Swagger docs at `/docs`):
+This repository includes two frontend interfaces connected to the active ResQSwarm FastAPI YOLO person-detection backend:
 
-1. **Single-Image AI Detection (`ai-detection.html`):** Upload thermal/aerial imagery, inspect `image_width`, `image_height`, `detection_count`, `detections` (`class`, `confidence`, `bbox_xyxy`), and `gps_coordinates`, and view responsive bounding-box overlays.
+- **🌐 BACKEND URL:** `https://slam-slapping-gusty.ngrok-free.dev`
+- **❤️ HEALTH (`GET /health`):** `https://slam-slapping-gusty.ngrok-free.dev/health`
+- **📘 API DOCS (`/docs`):** `https://slam-slapping-gusty.ngrok-free.dev/docs`
+- **🤖 DETECTION ENDPOINT (`POST /detect`):** `https://slam-slapping-gusty.ngrok-free.dev/detect` (`multipart/form-data` field `image`)
+
+1. **Single-Image AI Detection (`ai-detection.html`):** Upload thermal/aerial imagery, check `GET /health` (`status`, `model_loaded`, `classes`), inspect `POST /detect` fields (`image_width`, `image_height`, `detection_count`, `detections`, `status`, `gps_coordinates`, `warning`), and view responsive bounding-box overlays.
 2. **Multi-Drone Rescue Command (`rescue-command.html`):** Combines a 10-drone **SIMULATED** fleet overview (`Drone 01`–`Drone 10`) with live FastAPI YOLO inference and a confidence-sorted candidate review queue (`AI review order — confidence only`).
 
 ### ⚠️ Temporary ngrok Tunnel & Safety Notice (Not Production-Ready)
