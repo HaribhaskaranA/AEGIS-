@@ -1,151 +1,1054 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AEGIS | AI Detection Demo</title>
-<style>
-body{margin:0;background:#091119;color:#e7f0f5;font:16px system-ui,sans-serif;padding:24px}
-main{max-width:850px;margin:auto}
-.panel{background:#111d27;border:1px solid #30404c;border-radius:12px;padding:22px;margin:18px 0}
-h1{color:#3ecf8e}p{color:#b0bec8}
-button{background:#164c37;color:white;border:0;padding:12px 18px;border-radius:7px;cursor:pointer}
-button:disabled{opacity:.5}
-input{display:block;margin:16px 0;max-width:100%}
-img{max-width:100%;max-height:450px;display:block;margin-top:18px}
-.status{padding:12px;background:#0a141b;border-radius:7px;overflow-wrap:anywhere}
-.candidate{border:1px solid #6b502e;background:#211a10;padding:14px;margin:12px 0;border-radius:8px}
-small{color:#ffc77a}code{overflow-wrap:anywhere}
-</style>
-</head>
-<body>
-<main>
-<a href="index.html" style="color:#3ecf8e">← Back to AEGIS Console</a>
-<h1>AEGIS // AI Person Detection</h1>
-<p>Experimental image-detection demo using the existing YOLO model.</p>
-
-<div class="panel">
-<h3>01 / Upload image</h3>
-<input id="file" type="file" accept="image/*">
-<img id="preview" hidden alt="Uploaded image preview">
-<p id="health" class="status">Checking AI service…</p>
-<button id="run" disabled>Run AI Detection</button>
-<p id="status" class="status">Choose an image to begin.</p>
-</div>
-
-<div class="panel">
-<h3>02 / Detection results</h3>
-<p id="summary">No results yet.</p>
-<div id="results"></div>
-<p><small>Safety: candidates are unverified. Thermal-image accuracy is not established. No GPS coordinates or survival probability are inferred. Human review is required.</small></p>
-</div>
-</main>
-
-<script>
-const API = "https://slam-slapping-gusty.ngrok-free.dev";
-const fileInput = document.getElementById("file");
-const preview = document.getElementById("preview");
-const run = document.getElementById("run");
-const statusEl = document.getElementById("status");
-const healthEl = document.getElementById("health");
-let chosenFile = null;
-
-async function checkHealth() {
-  try {
-    const response = await fetch(API + "/health");
-    if (!response.ok) throw new Error("HTTP " + response.status);
-    const data = await response.json();
-    healthEl.textContent = data.detector_loaded
-      ? "AI service online · Person detector loaded"
-      : "API online, but detector is unavailable.";
-  } catch (e) {
-    healthEl.textContent =
-      "AI service unavailable. Check that Colab and ngrok are still running.";
-  }
-}
-
-fileInput.addEventListener("change", () => {
-  chosenFile = fileInput.files[0] || null;
-  document.getElementById("results").replaceChildren();
-  document.getElementById("summary").textContent = "No results yet.";
-
-  if (!chosenFile) {
-    run.disabled = true;
-    preview.hidden = true;
-    return;
-  }
-  if (!chosenFile.type.startsWith("image/") ||
-      chosenFile.size > 12 * 1024 * 1024) {
-    chosenFile = null;
-    run.disabled = true;
-    statusEl.textContent = "Choose an image under 12 MB.";
-    return;
-  }
-
-  preview.src = URL.createObjectURL(chosenFile);
-  preview.hidden = false;
-  run.disabled = false;
-  statusEl.textContent = "Image ready for analysis.";
-});
-
-run.addEventListener("click", async () => {
-  if (!chosenFile) return;
-  run.disabled = true;
-  statusEl.textContent = "Running detector…";
-  const form = new FormData();
-  form.append("file", chosenFile);
-
-  try {
-    const response = await fetch(API + "/detect", {
-      method: "POST",
-      body: form
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || "Request failed");
-
-    document.getElementById("summary").textContent =
-      `${data.detection_count} candidate(s) · Image ${data.image_width} × ${data.image_height}`;
-
-    const results = document.getElementById("results");
-    results.replaceChildren();
-
-    if (!data.detections.length) {
-      results.textContent =
-        "No candidates returned. This does not prove the image contains no people.";
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEGIS SAR Console | AI Candidate Detection Inspector</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233ecf8e'><polygon points='12 2 19 21 12 17 5 21 12 2'/></svg>">
+  <style>
+    body {
+      overflow-y: auto;
+      height: auto;
+      min-height: 100vh;
     }
 
-    data.detections.forEach((item, index) => {
-      const card = document.createElement("div");
-      card.className = "candidate";
+    .ai-page-wrapper {
+      max-width: 1380px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 32px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
 
-      const title = document.createElement("h3");
-      title.textContent =
-        `Candidate ${index + 1} — ${(item.confidence * 100).toFixed(2)}% confidence`;
+    /* Safety & Ethical Protocol Banner */
+    .safety-banner {
+      background: rgba(245, 158, 11, 0.09);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-left: 4px solid var(--accent-amber);
+      border-radius: 6px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
 
-      const box = document.createElement("p");
-      box.textContent = "Bounding box (pixels): " +
-        item.bbox_xyxy.map(n => Number(n).toFixed(1)).join(", ");
+    .safety-banner-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent-amber);
+      letter-spacing: 0.4px;
+      margin-bottom: 3px;
+    }
 
-      const warning = document.createElement("small");
-      warning.textContent = "Unverified candidate · human review required";
+    .safety-banner-desc {
+      font-size: 0.74rem;
+      color: #e5e7eb;
+      line-height: 1.5;
+    }
 
-      card.append(title, box, warning);
-      results.appendChild(card);
+    /* API Health & Endpoint Bar */
+    .api-connection-bar {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 980px) {
+      .api-connection-bar {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .endpoint-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .health-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .health-metric-box {
+      background: #121212;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 9px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .health-metric-lbl {
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .health-metric-val {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #fff;
+      word-break: break-word;
+    }
+
+    /* Main Workspace Grid: Left Upload/Preview, Right Detection Results */
+    .detection-workspace-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 1080px) {
+      .detection-workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Upload Dropzone */
+    .upload-dropzone {
+      border: 1.5px dashed #383838;
+      background: #141414;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .upload-dropzone:hover,
+    .upload-dropzone.dragover {
+      border-color: var(--accent-emerald);
+      background: rgba(62, 207, 142, 0.05);
+    }
+
+    .upload-icon-circle {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(62, 207, 142, 0.1);
+      border: 1px solid rgba(62, 207, 142, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-emerald);
+    }
+
+    /* Preview & Bounding Box Canvas Stage */
+    .preview-stage-container {
+      margin-top: 14px;
+      background: #0d0d0d;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      min-height: 320px;
+      max-height: 560px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 8px;
+    }
+
+    .preview-canvas-wrap {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+    }
+
+    #imagePreviewEl {
+      display: none;
+      max-width: 100%;
+      max-height: 520px;
+      width: auto;
+      height: auto;
+      border-radius: 4px;
+      vertical-align: middle;
+    }
+
+    #bboxOverlayCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .preview-empty-placeholder {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    /* Status & Alert Boxes */
+    .status-banner {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      line-height: 1.4;
+    }
+
+    .status-banner.loading {
+      display: flex;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #93c5fd;
+    }
+
+    .status-banner.error {
+      display: flex;
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fda4af;
+    }
+
+    .status-banner.success {
+      display: flex;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #6ee7b7;
+    }
+
+    .spinner-ring {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(147, 197, 253, 0.3);
+      border-top-color: #60a5fa;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* API Warning Callout from /detect response */
+    .api-response-warning {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 0.72rem;
+      color: #fcd34d;
+      margin-bottom: 14px;
+      display: none;
+    }
+
+    .candidate-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+
+    .raw-json-box {
+      background: #0d0d0d;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 0.7rem;
+      color: #cbd5e1;
+      max-height: 260px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ======================================================== -->
+  <!-- TOP CONSOLE NAVIGATION HEADER (CONSISTENT WITH AEGIS)    -->
+  <!-- ======================================================== -->
+  <header class="console-header">
+    <div class="header-brand">
+      <div class="brand-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">
+          AEGIS SAR
+          <span class="badge-subtle mono">AI CANDIDATE DETECTOR</span>
+          <span class="badge-demo mono">UNVERIFIED CANDIDATES ONLY</span>
+        </div>
+        <div class="brand-subtitle mono">
+          AERIAL IMAGERY PERSON-DETECTION INFERENCE INSPECTOR
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav-tabs mono">
+      <a href="index.html" class="nav-tab" style="text-decoration: none;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        BACK TO MISSION CONSOLE
+      </a>
+      <span class="nav-tab active" style="cursor: default;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+        AI DETECTION
+      </span>
+      <a href="rescue-command.html" class="nav-tab" style="text-decoration: none; border-color: rgba(249, 115, 22, 0.45); color: #fb923c;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 19 21 12 17 5 21 12 2"/></svg>
+        RESCUE COMMAND
+      </a>
+    </nav>
+
+    <div class="header-actions">
+      <div class="operator-profile-btn mono" style="cursor: default;">
+        <div id="headerApiDot" class="status-indicator-green" style="background: var(--accent-amber);"></div>
+        <span id="headerApiStatusText">API: CHECKING...</span>
+      </div>
+      <a href="index.html" class="btn-console mono" style="text-decoration: none;">
+        🗺️ OPERATIONS MAP
+      </a>
+    </div>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- MAIN AI DETECTION CONTENT                                -->
+  <!-- ======================================================== -->
+  <main class="ai-page-wrapper">
+
+    <!-- Page Title Header -->
+    <div class="page-header" style="margin-bottom: 0;">
+      <div class="page-tag mono">REMOTE COLAB / NGROK INFERENCE ENGINE</div>
+      <h1 class="page-title">AI Person-Detection Candidate Inspector</h1>
+      <p class="page-subtitle">
+        Upload aerial or field imagery to run remote person-detection inference via <code>POST /detect</code> and inspect unverified candidate bounding boxes.
+      </p>
+    </div>
+
+    <!-- Mandatory Safety & Operational Disclaimer Banner -->
+    <div class="safety-banner mono">
+      <div style="font-size: 1.2rem; line-height: 1;">⚠️</div>
+      <div>
+        <div class="safety-banner-title">SAFETY &amp; HUMAN-IN-THE-LOOP VERIFICATION NOTICE</div>
+        <div class="safety-banner-desc">
+          All model outputs are strictly <strong>unverified candidates requiring human review</strong>. Detections do <strong>not</strong> represent confirmed survivors, and pixel-space bounding boxes (<code>bbox_xyxy</code>) do <strong>not</strong> infer or provide geographic GPS coordinates.
+        </div>
+      </div>
+    </div>
+
+    <!-- API Connection & Health Check Panel (GET /health) -->
+    <div class="api-connection-bar">
+      <div class="console-card" style="margin-bottom: 0;">
+        <div class="console-card-header" style="margin-bottom: 8px;">
+          <span class="console-card-title mono">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            AI INFERENCE API ENDPOINT CONFIGURATION
+          </span>
+          <span class="badge-subtle mono" id="healthHttpBadge">GET /health</span>
+        </div>
+        <p style="font-size: 0.73rem; color: var(--text-secondary);">
+          Connected to Google Colab tunnel via ngrok. Click <strong>Check Health</strong> to verify <code>GET /health</code> status, or view <a href="https://slam-slapping-gusty.ngrok-free.dev/docs" id="apiDocsLink" target="_blank" rel="noopener noreferrer" style="color: var(--accent-emerald); text-decoration: underline;">FastAPI Swagger Docs (<code>/docs</code>)</a>.
+        </p>
+        <div class="endpoint-input-row mono">
+          <input
+            type="url"
+            id="apiBaseUrlInput"
+            class="planner-field-input mono"
+            style="flex: 1;"
+            value="https://slam-slapping-gusty.ngrok-free.dev"
+            placeholder="https://slam-slapping-gusty.ngrok-free.dev"
+          >
+          <button type="button" class="btn-console primary mono" id="btnCheckHealth">
+            🔄 CHECK HEALTH (GET /health)
+          </button>
+        </div>
+      </div>
+
+      <div class="console-card" style="margin-bottom: 0;">
+        <div class="console-card-header" style="margin-bottom: 6px;">
+          <span class="console-card-title mono">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            LIVE SERVICE HEALTH TELEMETRY
+          </span>
+          <span class="badge-subtle mono" id="healthLastChecked">NOT CHECKED YET</span>
+        </div>
+
+        <div class="health-metrics-grid mono">
+          <div class="health-metric-box">
+            <span class="health-metric-lbl">STATUS (status)</span>
+            <span class="health-metric-val" id="healthStatusVal">--</span>
+          </div>
+          <div class="health-metric-box">
+            <span class="health-metric-lbl">DETECTOR LOADED (detector_loaded)</span>
+            <span class="health-metric-val" id="healthDetectorLoadedVal">--</span>
+          </div>
+          <div class="health-metric-box">
+            <span class="health-metric-lbl">MODEL CLASSES (classes)</span>
+            <span class="health-metric-val" id="healthClassesVal">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Detection Workspace -->
+    <div class="detection-workspace-grid">
+
+      <!-- LEFT COLUMN: Image Upload, Action Controls & Annotated Preview -->
+      <div class="console-card" style="margin-bottom: 0;">
+        <div class="console-card-header">
+          <span class="console-card-title mono">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            1. IMAGE UPLOAD &amp; CANDIDATE BOUNDING-BOX PREVIEW
+          </span>
+          <span class="badge-subtle mono" id="selectedFileMetaBadge">NO FILE SELECTED</span>
+        </div>
+
+        <!-- File Input & Drag-and-Drop Zone -->
+        <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+        <div class="upload-dropzone" id="uploadDropzone">
+          <div class="upload-icon-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div style="font-size: 0.82rem; font-weight: 600; color: #fff;">
+            Click to select an image file or drag &amp; drop here
+          </div>
+          <div class="mono" style="font-size: 0.68rem; color: var(--text-muted);">
+            Sent as multipart/form-data field <code>"file"</code> to <code>POST /detect</code> (JPG, PNG, WEBP)
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+          <button type="button" class="btn-console primary large mono" id="btnRunDetection" style="flex: 1; justify-content: center;" disabled>
+            🎯 RUN DETECTION (POST /detect)
+          </button>
+          <button type="button" class="btn-console mono" id="btnClearDetection" disabled>
+            ✖ CLEAR
+          </button>
+        </div>
+
+        <!-- Loading / Error / Offline / Status Message Banner with Retry Action -->
+        <div id="detectionStatusBanner" class="status-banner mono" style="justify-content: space-between; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+            <div id="statusSpinner" class="spinner-ring" style="display: none;"></div>
+            <span id="detectionStatusText"></span>
+          </div>
+          <button type="button" class="btn-console primary small mono" id="btnStatusRetry" style="display: none; white-space: nowrap;">
+            🔄 RETRY
+          </button>
+        </div>
+
+        <!-- Image Preview + Bounding-Box Canvas Overlay -->
+        <div class="preview-stage-container" id="previewStageContainer">
+          <div id="previewEmptyText" class="preview-empty-placeholder mono">
+            No image loaded. Select an image above to preview and run candidate detection.
+          </div>
+          <div class="preview-canvas-wrap" id="previewCanvasWrap" style="display: none;">
+            <img id="imagePreviewEl" alt="Uploaded SAR inspection preview">
+            <canvas id="bboxOverlayCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Structured API Response & Unverified Candidates Table -->
+      <div class="console-card" style="margin-bottom: 0;">
+        <div class="console-card-header">
+          <span class="console-card-title mono">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            2. DETECTION RESULTS (UNVERIFIED CANDIDATES)
+          </span>
+          <span class="candidate-badge mono">HUMAN REVIEW REQUIRED</span>
+        </div>
+
+        <!-- API Warning Field Display (populated from response.warning) -->
+        <div id="apiWarningBox" class="api-response-warning mono"></div>
+
+        <!-- Top-level Response Metrics from POST /detect -->
+        <div class="kpi-row-grid mono" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
+          <div class="kpi-card" style="padding: 10px 12px;">
+            <span class="kpi-lbl">API STATUS (status)</span>
+            <span class="kpi-val" id="resStatusVal" style="font-size: 0.98rem; color: #fff;">--</span>
+          </div>
+          <div class="kpi-card" style="padding: 10px 12px;">
+            <span class="kpi-lbl">CANDIDATE COUNT (detection_count)</span>
+            <span class="kpi-val" id="resCountVal" style="font-size: 0.98rem; color: var(--accent-amber);">--</span>
+          </div>
+          <div class="kpi-card" style="padding: 10px 12px;">
+            <span class="kpi-lbl">IMAGE SIZE (image_width × image_height)</span>
+            <span class="kpi-val" id="resDimensionsVal" style="font-size: 0.98rem; color: #38bdf8;">--</span>
+          </div>
+          <div class="kpi-card" style="padding: 10px 12px;">
+            <span class="kpi-lbl">GPS COORDINATES (gps_coordinates)</span>
+            <span class="kpi-val" id="resGpsVal" style="font-size: 0.92rem; color: var(--accent-amber);">GPS unavailable</span>
+          </div>
+        </div>
+
+        <!-- Detections Table -->
+        <div class="section-label mono" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>CANDIDATE DETECTIONS LIST (detections[])</span>
+          <span style="color: var(--text-muted); font-size: 0.62rem;">PIXEL SPACE ONLY • GPS UNAVAILABLE</span>
+        </div>
+
+        <div style="max-height: 310px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: 6px;">
+          <table class="data-table mono" style="margin-top: 0;">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Class (<code>class</code>)</th>
+                <th>Confidence (<code>confidence</code>)</th>
+                <th>Pixel BBox (<code>bbox_xyxy</code>)</th>
+                <th>GPS (<code>gps_coordinates</code>)</th>
+                <th>Verification Status</th>
+              </tr>
+            </thead>
+            <tbody id="detectionsTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                  Run detection on an uploaded image to view unverified candidate results.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Raw API JSON Response Inspector -->
+        <div style="margin-top: 16px;">
+          <div class="section-label mono" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>RAW API JSON PAYLOAD</span>
+            <span id="rawEndpointSourceLabel" style="color: var(--accent-emerald); font-size: 0.62rem;">AWAITING REQUEST</span>
+          </div>
+          <pre id="rawJsonOutput" class="raw-json-box mono">// Raw JSON response from /health or /detect will appear here.</pre>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    /**
+     * AEGIS SAR AI Candidate Detection Client
+     * Connects to Google Colab FastAPI service via ngrok:
+     * - GET  /health -> { status, detector_loaded, classes }
+     * - POST /detect -> FormData("file") -> { status, image_width, image_height, detections: [{ class, confidence, bbox_xyxy }], detection_count, gps_coordinates, warning }
+     */
+    const apiBaseUrlInput = document.getElementById('apiBaseUrlInput');
+    const apiDocsLink = document.getElementById('apiDocsLink');
+    const btnCheckHealth = document.getElementById('btnCheckHealth');
+    const headerApiDot = document.getElementById('headerApiDot');
+    const headerApiStatusText = document.getElementById('headerApiStatusText');
+    const healthHttpBadge = document.getElementById('healthHttpBadge');
+    const healthLastChecked = document.getElementById('healthLastChecked');
+    const healthStatusVal = document.getElementById('healthStatusVal');
+    const healthDetectorLoadedVal = document.getElementById('healthDetectorLoadedVal');
+    const healthClassesVal = document.getElementById('healthClassesVal');
+
+    const imageFileInput = document.getElementById('imageFileInput');
+    const uploadDropzone = document.getElementById('uploadDropzone');
+    const selectedFileMetaBadge = document.getElementById('selectedFileMetaBadge');
+    const btnRunDetection = document.getElementById('btnRunDetection');
+    const btnClearDetection = document.getElementById('btnClearDetection');
+    const detectionStatusBanner = document.getElementById('detectionStatusBanner');
+    const statusSpinner = document.getElementById('statusSpinner');
+    const detectionStatusText = document.getElementById('detectionStatusText');
+    const btnStatusRetry = document.getElementById('btnStatusRetry');
+
+    const previewEmptyText = document.getElementById('previewEmptyText');
+    const previewCanvasWrap = document.getElementById('previewCanvasWrap');
+    const imagePreviewEl = document.getElementById('imagePreviewEl');
+    const bboxOverlayCanvas = document.getElementById('bboxOverlayCanvas');
+
+    const apiWarningBox = document.getElementById('apiWarningBox');
+    const resStatusVal = document.getElementById('resStatusVal');
+    const resCountVal = document.getElementById('resCountVal');
+    const resDimensionsVal = document.getElementById('resDimensionsVal');
+    const resGpsVal = document.getElementById('resGpsVal');
+    const detectionsTableBody = document.getElementById('detectionsTableBody');
+    const rawJsonOutput = document.getElementById('rawJsonOutput');
+    const rawEndpointSourceLabel = document.getElementById('rawEndpointSourceLabel');
+
+    let selectedImageFile = null;
+    let lastDetectionResponse = null;
+    let pendingRetryAction = null;
+
+    function getCleanBaseUrl() {
+      const url = (apiBaseUrlInput.value || '').trim().replace(/\/+$/, '');
+      if (apiDocsLink && url) {
+        apiDocsLink.href = `${url}/docs`;
+      }
+      return url;
+    }
+
+    function setStatusBanner(type, message, showSpinner = false, retryCallback = null) {
+      pendingRetryAction = retryCallback;
+      if (!type) {
+        detectionStatusBanner.className = 'status-banner mono';
+        detectionStatusBanner.style.display = 'none';
+        if (btnStatusRetry) btnStatusRetry.style.display = 'none';
+        return;
+      }
+      detectionStatusBanner.className = `status-banner ${type} mono`;
+      detectionStatusBanner.style.display = 'flex';
+      statusSpinner.style.display = showSpinner ? 'inline-block' : 'none';
+      detectionStatusText.textContent = message;
+      if (btnStatusRetry) {
+        btnStatusRetry.style.display = typeof retryCallback === 'function' ? 'inline-flex' : 'none';
+      }
+    }
+
+    function formatGpsField(gpsValue) {
+      if (gpsValue === null || gpsValue === undefined || gpsValue === '') {
+        return 'GPS unavailable';
+      }
+      if (typeof gpsValue === 'object') {
+        const lat = gpsValue.lat ?? gpsValue.latitude;
+        const lon = gpsValue.lon ?? gpsValue.lng ?? gpsValue.longitude;
+        if (typeof lat === 'number' && typeof lon === 'number') {
+          return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+        }
+      }
+      return String(gpsValue);
+    }
+
+    /**
+     * 1. Check API Health (GET /health)
+     */
+    async function checkApiHealth() {
+      const baseUrl = getCleanBaseUrl();
+      if (!baseUrl) {
+        setStatusBanner('error', 'Please enter a valid API Base URL.');
+        return;
+      }
+
+      btnCheckHealth.disabled = true;
+      btnCheckHealth.textContent = '⏳ CHECKING...';
+      headerApiDot.style.background = 'var(--accent-amber)';
+      headerApiStatusText.textContent = 'API: CHECKING...';
+      healthHttpBadge.textContent = 'CONNECTING...';
+
+      try {
+        const response = await fetch(`${baseUrl}/health`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          }
+        });
+
+        const rawText = await response.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          throw new Error('Backend returned non-JSON response (ngrok tunnel may be offline or disconnected).');
+        }
+
+        rawEndpointSourceLabel.textContent = `GET ${baseUrl}/health (HTTP ${response.status})`;
+        rawJsonOutput.textContent = JSON.stringify(data, null, 2);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${JSON.stringify(data)}`);
+        }
+
+        // Populate exact fields returned by GET /health: status, detector_loaded, classes
+        healthStatusVal.textContent = data.status !== undefined ? String(data.status) : 'unknown';
+        healthStatusVal.style.color = data.status === 'running' ? 'var(--accent-emerald)' : 'var(--accent-amber)';
+
+        healthDetectorLoadedVal.textContent = data.detector_loaded !== undefined ? String(data.detector_loaded) : 'unknown';
+        healthDetectorLoadedVal.style.color = data.detector_loaded === true ? 'var(--accent-emerald)' : 'var(--accent-red)';
+
+        if (data.classes && typeof data.classes === 'object') {
+          const formattedClasses = Object.entries(data.classes)
+            .map(([id, label]) => `${id}: ${label}`)
+            .join(', ');
+          healthClassesVal.textContent = formattedClasses || JSON.stringify(data.classes);
+        } else {
+          healthClassesVal.textContent = data.classes !== undefined ? String(data.classes) : '--';
+        }
+
+        const nowStr = new Date().toLocaleTimeString();
+        healthLastChecked.textContent = `ONLINE @ ${nowStr}`;
+        healthHttpBadge.textContent = `HTTP ${response.status} OK`;
+        healthHttpBadge.style.color = 'var(--accent-emerald)';
+
+        headerApiDot.style.background = 'var(--accent-emerald)';
+        headerApiStatusText.textContent = `API: ${String(data.status || 'ONLINE').toUpperCase()}`;
+
+        if (detectionStatusBanner.classList.contains('error')) {
+          setStatusBanner(null, '');
+        }
+      } catch (err) {
+        healthStatusVal.textContent = 'BACKEND OFFLINE';
+        healthStatusVal.style.color = 'var(--accent-red)';
+        healthDetectorLoadedVal.textContent = 'false';
+        healthDetectorLoadedVal.style.color = 'var(--accent-red)';
+        healthClassesVal.textContent = '--';
+        healthHttpBadge.textContent = 'BACKEND OFFLINE';
+        healthHttpBadge.style.color = 'var(--accent-red)';
+        headerApiDot.style.background = 'var(--accent-red)';
+        headerApiStatusText.textContent = 'API: OFFLINE';
+        setStatusBanner(
+          'error',
+          `Backend offline or unreachable (${baseUrl}/health): ${err.message}. Check your Colab/ngrok session and click Retry.`,
+          false,
+          checkApiHealth
+        );
+      } finally {
+        btnCheckHealth.disabled = false;
+        btnCheckHealth.textContent = '🔄 CHECK HEALTH (GET /health)';
+      }
+    }
+
+    /**
+     * 2. Handle Image Selection & Local Preview
+     */
+    function handleFileSelected(file) {
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        setStatusBanner('error', 'Selected file is not a valid image. Please upload a JPG, PNG, or WEBP image.');
+        return;
+      }
+
+      selectedImageFile = file;
+      lastDetectionResponse = null;
+
+      const sizeKb = (file.size / 1024).toFixed(1);
+      selectedFileMetaBadge.textContent = `${file.name} (${sizeKb} KB)`;
+      selectedFileMetaBadge.style.color = 'var(--accent-emerald)';
+
+      btnRunDetection.disabled = false;
+      btnClearDetection.disabled = false;
+
+      // Clear previous overlay & results
+      clearOverlayCanvas();
+      setStatusBanner(null, '');
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imagePreviewEl.onload = () => {
+          previewEmptyText.style.display = 'none';
+          previewCanvasWrap.style.display = 'inline-block';
+          imagePreviewEl.style.display = 'block';
+          syncCanvasSizeToImage();
+        };
+        imagePreviewEl.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function syncCanvasSizeToImage() {
+      if (!imagePreviewEl || !bboxOverlayCanvas) return;
+      const rect = imagePreviewEl.getBoundingClientRect();
+      bboxOverlayCanvas.width = Math.round(rect.width) || imagePreviewEl.clientWidth || 1;
+      bboxOverlayCanvas.height = Math.round(rect.height) || imagePreviewEl.clientHeight || 1;
+      if (lastDetectionResponse) {
+        drawCandidateBoundingBoxes(lastDetectionResponse);
+      }
+    }
+
+    function clearOverlayCanvas() {
+      const ctx = bboxOverlayCanvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, bboxOverlayCanvas.width, bboxOverlayCanvas.height);
+      }
+    }
+
+    function clearSelectionAndResults() {
+      selectedImageFile = null;
+      lastDetectionResponse = null;
+      imageFileInput.value = '';
+      imagePreviewEl.src = '';
+      imagePreviewEl.style.display = 'none';
+      previewCanvasWrap.style.display = 'none';
+      previewEmptyText.style.display = 'block';
+      clearOverlayCanvas();
+
+      selectedFileMetaBadge.textContent = 'NO FILE SELECTED';
+      selectedFileMetaBadge.style.color = '';
+      btnRunDetection.disabled = true;
+      btnClearDetection.disabled = true;
+
+      apiWarningBox.style.display = 'none';
+      resStatusVal.textContent = '--';
+      resCountVal.textContent = '--';
+      resDimensionsVal.textContent = '--';
+      resGpsVal.textContent = 'GPS unavailable';
+      detectionsTableBody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+            Run detection on an uploaded image to view unverified candidate results.
+          </td>
+        </tr>
+      `;
+      setStatusBanner(null, '');
+    }
+
+    /**
+     * 3. Run Detection (POST /detect with FormData field "file")
+     * Do NOT manually set the multipart Content-Type header; browser sets boundary automatically.
+     */
+    async function runDetection() {
+      if (!selectedImageFile) {
+        setStatusBanner('error', 'Please select an image first.');
+        return;
+      }
+
+      const baseUrl = getCleanBaseUrl();
+      if (!baseUrl) {
+        setStatusBanner('error', 'Please enter a valid API Base URL.');
+        return;
+      }
+
+      btnRunDetection.disabled = true;
+      btnRunDetection.textContent = '⏳ RUNNING DETECTION...';
+      setStatusBanner('loading', `Uploading "${selectedImageFile.name}" to POST ${baseUrl}/detect (field: "file")...`, true);
+
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedImageFile);
+
+        const response = await fetch(`${baseUrl}/detect`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          },
+          body: formData
+        });
+
+        const rawText = await response.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          throw new Error('Backend returned non-JSON response. The ngrok tunnel may have disconnected.');
+        }
+
+        rawEndpointSourceLabel.textContent = `POST ${baseUrl}/detect (HTTP ${response.status})`;
+        rawJsonOutput.textContent = JSON.stringify(data, null, 2);
+
+        if (!response.ok) {
+          const detailMsg = data && data.detail ? JSON.stringify(data.detail) : `HTTP ${response.status}`;
+          throw new Error(detailMsg);
+        }
+
+        lastDetectionResponse = data;
+        renderDetectionResponse(data);
+
+        const count = typeof data.detection_count === 'number'
+          ? data.detection_count
+          : (Array.isArray(data.detections) ? data.detections.length : 0);
+
+        setStatusBanner(
+          'success',
+          `Inference complete: ${count} unverified AI candidate(s) returned. Human review required before any operational action.`,
+          false
+        );
+      } catch (err) {
+        headerApiDot.style.background = 'var(--accent-red)';
+        headerApiStatusText.textContent = 'API: ERROR / OFFLINE';
+        setStatusBanner(
+          'error',
+          `Backend offline or detection request failed (${baseUrl}/detect): ${err.message}`,
+          false,
+          runDetection
+        );
+      } finally {
+        btnRunDetection.disabled = !selectedImageFile;
+        btnRunDetection.textContent = '🎯 RUN DETECTION (POST /detect)';
+      }
+    }
+
+    /**
+     * 4. Render Actual API Response Fields (status, image_width, image_height, detection_count, detections, gps_coordinates, warning)
+     */
+    function renderDetectionResponse(data) {
+      // 1. Top-level fields
+      resStatusVal.textContent = data.status !== undefined ? String(data.status) : '--';
+      resStatusVal.style.color = data.status === 'ok' ? 'var(--accent-emerald)' : '#fff';
+
+      const detectionsList = Array.isArray(data.detections) ? data.detections : [];
+      const countVal = data.detection_count !== undefined ? data.detection_count : detectionsList.length;
+      resCountVal.textContent = `${countVal} CANDIDATE${countVal === 1 ? '' : 'S'}`;
+
+      if (data.image_width !== undefined && data.image_height !== undefined) {
+        resDimensionsVal.textContent = `${data.image_width} × ${data.image_height} px`;
+      } else {
+        resDimensionsVal.textContent = '--';
+      }
+
+      const topLevelGpsText = formatGpsField(data.gps_coordinates ?? null);
+      resGpsVal.textContent = topLevelGpsText;
+
+      // 2. API warning banner (always show thermal unvalidated notice from response.warning or default)
+      const warningMsg = data.warning || 'Unvalidated for thermal imagery. Results are not confirmed survivor detections.';
+      apiWarningBox.style.display = 'block';
+      apiWarningBox.innerHTML = `<strong>API WARNING (<code>warning</code>):</strong> ${escapeHtml(String(warningMsg))}`;
+
+      // 3. Populate detections[] table
+      detectionsTableBody.innerHTML = '';
+
+      if (detectionsList.length === 0) {
+        detectionsTableBody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 22px; color: var(--text-secondary);">
+              0 unverified candidates detected in this image (<code>detections: []</code>).
+            </td>
+          </tr>
+        `;
+      } else {
+        detectionsList.forEach((det, idx) => {
+          const tr = document.createElement('tr');
+          const clsName = det.class !== undefined ? String(det.class) : 'Person';
+          const rawConf = typeof det.confidence === 'number' ? det.confidence : null;
+          const confDisplay = rawConf !== null
+            ? `${(rawConf * 100).toFixed(2)}% (${rawConf})`
+            : String(det.confidence ?? '--');
+
+          const bboxArr = Array.isArray(det.bbox_xyxy)
+            ? det.bbox_xyxy.map(n => Number(n).toFixed(2)).join(', ')
+            : JSON.stringify(det.bbox_xyxy ?? []);
+
+          const candidateGpsText = formatGpsField(det.gps_coordinates ?? data.gps_coordinates ?? null);
+          const candidateStatusText = det.status ? String(det.status) : 'UNVERIFIED CANDIDATE — HUMAN REVIEW REQUIRED';
+
+          tr.innerHTML = `
+            <td style="color: #fff; font-weight: 700;">#${idx + 1}</td>
+            <td style="color: var(--accent-amber); font-weight: 700;">${escapeHtml(clsName)}</td>
+            <td style="color: var(--accent-emerald); font-weight: 700;">${escapeHtml(confDisplay)}</td>
+            <td style="color: #cbd5e1;">[${escapeHtml(bboxArr)}]</td>
+            <td style="color: var(--accent-amber);">${escapeHtml(candidateGpsText)}</td>
+            <td><span class="candidate-badge">${escapeHtml(candidateStatusText)}</span></td>
+          `;
+          detectionsTableBody.appendChild(tr);
+        });
+      }
+
+      // 4. Draw bounding boxes on preview canvas
+      syncCanvasSizeToImage();
+    }
+
+    /**
+     * 5. Draw bbox_xyxy [x1, y1, x2, y2] on Overlay Canvas
+     */
+    function drawCandidateBoundingBoxes(data) {
+      clearOverlayCanvas();
+      if (!data || !Array.isArray(data.detections) || data.detections.length === 0) return;
+
+      const ctx = bboxOverlayCanvas.getContext('2d');
+      const dispW = bboxOverlayCanvas.width;
+      const dispH = bboxOverlayCanvas.height;
+
+      const srcW = Number(data.image_width) || imagePreviewEl.naturalWidth || dispW;
+      const srcH = Number(data.image_height) || imagePreviewEl.naturalHeight || dispH;
+
+      const scaleX = dispW / srcW;
+      const scaleY = dispH / srcH;
+
+      data.detections.forEach((det, idx) => {
+        if (!Array.isArray(det.bbox_xyxy) || det.bbox_xyxy.length < 4) return;
+        const [x1, y1, x2, y2] = det.bbox_xyxy.map(Number);
+
+        const rx = x1 * scaleX;
+        const ry = y1 * scaleY;
+        const rw = Math.max(4, (x2 - x1) * scaleX);
+        const rh = Math.max(4, (y2 - y1) * scaleY);
+
+        // Amber candidate bounding box
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(rx, ry, rw, rh);
+
+        const confPct = typeof det.confidence === 'number'
+          ? `${(det.confidence * 100).toFixed(1)}%`
+          : '';
+        const label = `#${idx + 1} ${det.class || 'Person'} ${confPct} [UNVERIFIED]`;
+
+        ctx.font = 'bold 10px "JetBrains Mono", monospace';
+        const textWidth = ctx.measureText(label).width;
+        const labelY = Math.max(14, ry);
+
+        ctx.fillStyle = 'rgba(18, 18, 18, 0.88)';
+        ctx.fillRect(rx, labelY - 14, textWidth + 8, 14);
+
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText(label, rx + 4, labelY - 3);
+      });
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Event Listeners
+    btnCheckHealth.addEventListener('click', checkApiHealth);
+    btnRunDetection.addEventListener('click', runDetection);
+    btnClearDetection.addEventListener('click', clearSelectionAndResults);
+    if (btnStatusRetry) {
+      btnStatusRetry.addEventListener('click', () => {
+        if (typeof pendingRetryAction === 'function') {
+          pendingRetryAction();
+        }
+      });
+    }
+    apiBaseUrlInput.addEventListener('input', getCleanBaseUrl);
+
+    uploadDropzone.addEventListener('click', () => imageFileInput.click());
+    imageFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleFileSelected(e.target.files[0]);
+      }
     });
 
-    statusEl.textContent = data.warning ||
-      "Detection complete. Review results manually.";
-  } catch (error) {
-    statusEl.textContent =
-      "Detection failed: " + error.message +
-      ". Check the Colab runtime, API and ngrok tunnel.";
-  } finally {
-    run.disabled = !chosenFile;
-  }
-});
+    uploadDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadDropzone.classList.add('dragover');
+    });
+    uploadDropzone.addEventListener('dragleave', () => {
+      uploadDropzone.classList.remove('dragover');
+    });
+    uploadDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadDropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFileSelected(e.dataTransfer.files[0]);
+      }
+    });
 
-checkHealth();
-</script>
+    window.addEventListener('resize', syncCanvasSizeToImage);
+    if (typeof ResizeObserver !== 'undefined' && imagePreviewEl) {
+      const imgResizeObserver = new ResizeObserver(() => {
+        syncCanvasSizeToImage();
+      });
+      imgResizeObserver.observe(imagePreviewEl);
+    }
+
+    // Automatically check GET /health on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      checkApiHealth();
+    });
+  </script>
 </body>
 </html>

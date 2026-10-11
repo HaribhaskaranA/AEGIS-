@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEGIS SAR | Multi-Drone Rescue Command Dashboard</title>
+  <link rel="stylesheet" href="rescue-command.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f97316'><polygon points='12 2 19 21 12 17 5 21 12 2'/></svg>">
+</head>
+<body class="rescue-command-body">
+
+  <!-- ======================================================== -->
+  <!-- TOP COMMAND NAVIGATION HEADER                            -->
+  <!-- ======================================================== -->
+  <header class="rc-header">
+    <div class="rc-brand">
+      <div class="rc-brand-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+        </svg>
+      </div>
+      <div>
+        <div class="rc-brand-title">
+          AEGIS SAR // RESCUE COMMAND
+          <span class="rc-badge rc-badge-sim mono">10-DRONE FLEET: SIMULATED</span>
+          <span class="rc-badge rc-badge-orange mono">YOLO THERMAL API: LIVE</span>
+        </div>
+        <div class="rc-brand-subtitle mono">
+          MULTI-DRONE THERMAL DETECTION &amp; HUMAN-IN-THE-LOOP CANDIDATE REVIEW CONSOLE
+        </div>
+      </div>
+    </div>
+
+    <nav class="rc-nav-links mono">
+      <a href="index.html" class="rc-nav-link">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        SWARM PLANNER (MAIN)
+      </a>
+      <a href="ai-detection.html" class="rc-nav-link">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+        SINGLE AI INSPECTOR
+      </a>
+      <a href="rescue-command.html" class="rc-nav-link active">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 19 21 12 17 5 21 12 2"/></svg>
+        MULTI-DRONE RESCUE COMMAND
+      </a>
+    </nav>
+
+    <div class="rc-header-status mono">
+      <div class="rc-badge rc-badge-neutral" id="rcHeaderApiPill" style="padding: 6px 10px;">
+        <span id="rcHeaderApiDot" class="rc-status-dot checking"></span>
+        <span id="rcHeaderApiText">API: CHECKING...</span>
+      </div>
+      <button type="button" class="rc-btn rc-btn-sm mono" id="btnHeaderCheckHealth">
+        🔄 CHECK API
+      </button>
+    </div>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- MAIN COMMAND DASHBOARD CONTAINER                         -->
+  <!-- ======================================================== -->
+  <main class="rc-container">
+
+    <!-- MANDATORY PROMINENT EXPERIMENTAL AI NOTICE (Requirement E) -->
+    <section class="rc-mandatory-notice" aria-label="Safety Notice">
+      <div class="rc-notice-main">
+        <div style="font-size: 1.35rem; line-height: 1;">⚠️</div>
+        <div>
+          <div class="rc-notice-title mono">
+            Experimental AI detections are unverified candidates. Human assessment is required.
+          </div>
+          <div class="rc-notice-sub">
+            <strong>Operational Integrity Policy:</strong> Drone 01 through Drone 10 telemetry below is <strong>SIMULATED DEMO DATA</strong> (no physical aircraft are connected). Detections returned by <code>POST /detect</code> are real YOLO model outputs in image pixel coordinates (<code>bbox_xyxy</code>) only — they do not provide candidate GPS coordinates, do not measure survival probability or injury severity, and do not confirm that repeated detections from different drones are the same person.
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" class="rc-btn rc-btn-danger mono" id="btnClearDemoData" title="Clear all stored candidate records from browser localStorage">
+          🗑️ CLEAR DEMO DATA (localStorage)
+        </button>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SECTION A: 10-DRONE SIMULATED OVERVIEW (Drone 01 - 10)   -->
+    <!-- ======================================================== -->
+    <section class="rc-card">
+      <div class="rc-card-header">
+        <div class="rc-card-title mono">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/></svg>
+          A. SIMULATED 10-DRONE FLEET OVERVIEW (DRONE 01 – DRONE 10)
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span class="rc-badge rc-badge-sim mono">ALL DRONE TELEMETRY IS SIMULATED DEMO DATA — NOT PHYSICALLY CONNECTED</span>
+          <span class="rc-badge rc-badge-orange mono" id="rcSelectedDroneBanner">ACTIVE SUBMITTING DRONE: DRONE 01 (SIMULATED)</span>
+        </div>
+      </div>
+
+      <p style="font-size: 0.75rem; color: var(--rc-text-secondary); margin-bottom: 12px;">
+        Click any simulated drone card below (or use the selector in Section B) to designate which simulated drone is submitting the uploaded thermal image for AI inspection.
+      </p>
+
+      <div class="rc-drone-grid mono" id="rcSimulatedDroneGrid">
+        <!-- Populated dynamically by rescue-command.js (Drone 01 through Drone 10) -->
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SECTION B & D: ACTUAL AI DETECTION + LOCATION/DISTANCE   -->
+    <!-- ======================================================== -->
+    <div class="rc-main-grid">
+
+      <!-- LEFT COLUMN: Section B — Actual AI Detection Upload, Preview & API Health -->
+      <section class="rc-card">
+        <div class="rc-card-header">
+          <div class="rc-card-title mono">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+            B. ACTUAL AI THERMAL DETECTION SUBMISSION (POST /detect)
+          </div>
+          <span class="rc-badge rc-badge-real mono">REAL FASTAPI YOLO INFERENCE</span>
+        </div>
+
+        <!-- API Base URL + Health Check Bar -->
+        <div style="background: var(--rc-bg-surface); border: 1px solid var(--rc-border-subtle); border-radius: 7px; padding: 12px; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+            <span class="mono" style="font-size: 0.68rem; font-weight: 700; color: var(--rc-text-secondary);">
+              FASTAPI NGROK ENDPOINT &amp; HEALTH (GET /health) • <a href="https://slam-slapping-gusty.ngrok-free.dev/docs" id="rcApiDocsLink" target="_blank" rel="noopener noreferrer" style="color: #10b981; text-decoration: underline;">API Docs (/docs)</a>
+            </span>
+            <span class="rc-badge rc-badge-neutral mono" id="rcHealthDetailBadge">Checking /health...</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <input
+              type="url"
+              id="rcApiBaseUrl"
+              class="rc-input mono"
+              style="flex: 1; min-width: 240px;"
+              value="https://slam-slapping-gusty.ngrok-free.dev"
+            >
+            <button type="button" class="rc-btn mono" id="btnCheckHealthMain">
+              🔄 CHECK HEALTH
+            </button>
+          </div>
+          <div class="mono" style="display: flex; gap: 16px; margin-top: 8px; font-size: 0.68rem; color: var(--rc-text-secondary); flex-wrap: wrap;">
+            <span>API Status: <strong id="rcHealthStatusField" style="color: #fff;">--</strong></span>
+            <span>Detector Loaded: <strong id="rcHealthLoadedField" style="color: #fff;">--</strong></span>
+            <span>Classes: <strong id="rcHealthClassesField" style="color: #fff;">--</strong></span>
+          </div>
+        </div>
+
+        <!-- Submitting Simulated Drone Selector -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label for="rcDroneSelect" class="mono" style="font-size: 0.66rem; font-weight: 700; color: var(--rc-text-muted);">
+              SUBMITTING DRONE SOURCE (SIMULATED)
+            </label>
+            <select id="rcDroneSelect" class="rc-select mono"></select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label class="mono" style="font-size: 0.66rem; font-weight: 700; color: var(--rc-text-muted);">
+              SELECTED IMAGE FILE (FormData: "file")
+            </label>
+            <div id="rcSelectedFileLabel" class="rc-input mono" style="color: var(--rc-text-muted); display: flex; align-items: center;">
+              No image selected
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload Dropzone -->
+        <input type="file" id="rcImageInput" accept="image/*" style="display: none;">
+        <div class="rc-dropzone" id="rcUploadDropzone">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div style="font-size: 0.82rem; font-weight: 700; color: #fff;">
+            Click to select a thermal / aerial image or drag &amp; drop
+          </div>
+          <div class="mono" style="font-size: 0.66rem; color: var(--rc-text-muted);">
+            Uploaded via <code>FormData</code> field <code>"file"</code> to <code>POST /detect</code>
+          </div>
+        </div>
+
+        <!-- Run Detection Button Row -->
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+          <button type="button" class="rc-btn rc-btn-orange mono" id="btnRunDetection" style="flex: 1; padding: 11px;" disabled>
+            🎯 RUN DETECTION (POST /detect)
+          </button>
+          <button type="button" class="rc-btn mono" id="btnClearUpload" disabled>
+            ✖ CLEAR IMAGE
+          </button>
+        </div>
+
+        <!-- Alert / Status / Error Banner with Retry Action -->
+        <div id="rcDetectionAlert" class="rc-alert mono" style="justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+            <div id="rcAlertSpinner" class="rc-spinner" style="display: none;"></div>
+            <span id="rcAlertText"></span>
+          </div>
+          <button type="button" class="rc-btn rc-btn-sm mono" id="btnRcAlertRetry" style="display: none; white-space: nowrap;">
+            🔄 RETRY
+          </button>
+        </div>
+
+        <!-- Image Preview & Bounding Box Canvas -->
+        <div class="rc-preview-stage">
+          <div id="rcPreviewPlaceholder" class="mono" style="font-size: 0.74rem; color: var(--rc-text-muted); text-align: center; padding: 28px;">
+            Image preview and actual <code>bbox_xyxy</code> candidate overlays will render here.
+          </div>
+          <div class="rc-preview-canvas-wrap" id="rcPreviewWrap" style="display: none;">
+            <img id="rcImagePreview" alt="Uploaded thermal image preview">
+            <canvas id="rcBboxCanvas"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN: Actual API Output vs Simulated Telemetry & Location/Distance Rules -->
+      <section class="rc-card">
+        <div class="rc-card-header">
+          <div class="rc-card-title mono">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            D. ACTUAL API RESPONSE vs. SIMULATED LOCATION &amp; DISTANCE
+          </div>
+          <span class="rc-badge rc-badge-warn mono">NO GPS FROM BBOX</span>
+        </div>
+
+        <!-- API Warning Banner (from response.warning) -->
+        <div id="rcApiWarningBanner" class="mono" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 6px; padding: 10px 12px; font-size: 0.71rem; color: #fcd34d; margin-bottom: 14px;"></div>
+
+        <!-- Explicit Split: Real Model Output vs Simulated Drone Metadata (Requirement C & D) -->
+        <div class="rc-origin-split mono">
+          <!-- Box 1: Actual Model Output -->
+          <div class="rc-origin-box real-api">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 0.68rem; font-weight: 800; color: var(--rc-accent-emerald);">ACTUAL API OUTPUT (/detect)</span>
+              <span class="rc-badge rc-badge-real">REAL MODEL</span>
+            </div>
+            <div class="rc-kv-row">
+              <span>API Status (<code>status</code>):</span>
+              <span id="rcOutStatus">--</span>
+            </div>
+            <div class="rc-kv-row">
+              <span>Detection Count (<code>detection_count</code>):</span>
+              <span id="rcOutCount" style="color: var(--rc-accent-orange-bright);">--</span>
+            </div>
+            <div class="rc-kv-row">
+              <span>Image Size (<code>image_width × image_height</code>):</span>
+              <span id="rcOutDims">--</span>
+            </div>
+            <div class="rc-kv-row">
+              <span>GPS Coordinates (<code>gps_coordinates</code>):</span>
+              <span id="rcOutGps" style="color: var(--rc-accent-amber);">GPS unavailable</span>
+            </div>
+          </div>
+
+          <!-- Box 2: Simulated Drone & Distance/ETA Status -->
+          <div class="rc-origin-box sim-drone">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 0.68rem; font-weight: 800; color: var(--rc-accent-blue);">SUBMITTING DRONE &amp; RANGE</span>
+              <span class="rc-badge rc-badge-sim">SIMULATED</span>
+            </div>
+            <div class="rc-kv-row">
+              <span>Selected Drone ID:</span>
+              <span id="rcMetaDroneId">Drone 01 (SIMULATED)</span>
+            </div>
+            <div class="rc-kv-row">
+              <span>Drone Coordinates:</span>
+              <span id="rcMetaDroneCoords" style="color: var(--rc-accent-blue);">SIMULATED: 45.9763° N, 7.7491° E</span>
+            </div>
+            <div class="rc-kv-row">
+              <span>Distance to Candidate:</span>
+              <span id="rcMetaDistance" style="color: var(--rc-text-muted);">unavailable (no candidate GPS)</span>
+            </div>
+            <div class="rc-kv-row">
+              <span>Rescue Team ETA:</span>
+              <span id="rcMetaEta" style="color: var(--rc-text-muted);">unavailable (no candidate GPS)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Optional Validated Coordinate Distance Calculator (Requirement D: unavailable unless valid candidate & rescue-team coordinates are supplied) -->
+        <div style="background: var(--rc-bg-surface); border: 1px solid var(--rc-border-subtle); border-radius: 7px; padding: 12px; margin-bottom: 14px;">
+          <div class="mono" style="font-size: 0.68rem; font-weight: 700; color: var(--rc-text-secondary); margin-bottom: 6px;">
+            OPTIONAL MANUAL COORDINATE RANGE CALCULATOR (NEVER DERIVED FROM BOUNDING BOXES)
+          </div>
+          <p style="font-size: 0.7rem; color: var(--rc-text-muted); margin-bottom: 8px;">
+            Distance and ETA remain <strong>unavailable</strong> by default because <code>POST /detect</code> returns pixel bounding boxes only. Enter verified external GPS coordinates below only if independently surveyed by ground teams:
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;" class="mono">
+            <input type="number" step="any" id="calcCandLat" class="rc-input" placeholder="Candidate Lat">
+            <input type="number" step="any" id="calcCandLon" class="rc-input" placeholder="Candidate Lon">
+            <input type="number" step="any" id="calcTeamLat" class="rc-input" placeholder="Rescue Team Lat">
+            <input type="number" step="any" id="calcTeamLon" class="rc-input" placeholder="Rescue Team Lon">
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; flex-wrap: wrap; gap: 8px;" class="mono">
+            <span id="calcRangeResult" style="font-size: 0.7rem; color: var(--rc-text-secondary);">
+              Candidate GPS: unavailable • Distance: unavailable • ETA: unavailable
+            </span>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="rc-btn rc-btn-sm mono" id="btnCalcValidatedRange">CALCULATE IF VALID</button>
+              <button type="button" class="rc-btn rc-btn-sm mono" id="btnResetValidatedRange">RESET TO UNAVAILABLE</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Current Image Detections Breakdown Table -->
+        <div class="mono" style="font-size: 0.68rem; font-weight: 700; color: var(--rc-text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between;">
+          <span>LATEST IMAGE DETECTIONS (ACTUAL API OUTPUT)</span>
+          <span style="color: var(--rc-text-muted);">PIXEL COORDINATES ONLY</span>
+        </div>
+        <div class="rc-table-wrap" style="max-height: 210px; overflow-y: auto; margin-bottom: 14px;">
+          <table class="rc-table mono">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Class (<code>class</code>)</th>
+                <th>Confidence (<code>confidence</code>)</th>
+                <th>BBox (<code>bbox_xyxy</code>)</th>
+                <th>Candidate GPS</th>
+              </tr>
+            </thead>
+            <tbody id="rcLatestDetectionsBody">
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 18px; color: var(--rc-text-muted);">
+                  No image submitted in this session yet. Upload an image and click Run Detection.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Raw JSON Inspector -->
+        <div class="mono" style="font-size: 0.66rem; font-weight: 700; color: var(--rc-text-muted); margin-bottom: 4px; display: flex; justify-content: space-between;">
+          <span>RAW API JSON RESPONSE INSPECTOR</span>
+          <span id="rcRawEndpointTag" style="color: var(--rc-accent-orange-bright);">IDLE</span>
+        </div>
+        <pre id="rcRawJsonPre" class="rc-raw-json mono">// Raw JSON from GET /health or POST /detect will be displayed here.</pre>
+      </section>
+
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECTION C & E: RESCUE REVIEW QUEUE (CONFIDENCE ONLY)     -->
+    <!-- ======================================================== -->
+    <section class="rc-card">
+      <div class="rc-card-header">
+        <div>
+          <div class="rc-card-title mono">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            C &amp; E. RESCUE CANDIDATE REVIEW QUEUE
+            <span class="rc-badge rc-badge-orange mono">AI review order — confidence only</span>
+          </div>
+          <p style="font-size: 0.73rem; color: var(--rc-text-secondary); margin-top: 4px;">
+            Sorted strictly by model detection confidence descending (<strong>AI review order — confidence only</strong>). Model confidence measures visual bounding-box certainty only — it is <strong>not</strong> a survival probability, injury diagnosis, or clinical triage urgency. Repeated detections from different drones are logged as separate unverified candidates and are not assumed to be the same person.
+          </p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;" class="mono">
+          <span class="rc-badge rc-badge-neutral" id="rcQueueCountBadge">0 DEMO CANDIDATES STORED</span>
+          <select id="rcQueueFilterSelect" class="rc-select mono" style="font-size: 0.7rem; padding: 5px 9px;">
+            <option value="ALL">Filter: All Statuses</option>
+            <option value="Pending Review">Status: Pending Review</option>
+            <option value="Reviewed">Status: Reviewed</option>
+            <option value="False Positive">Status: False Positive</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="rc-table-wrap">
+        <table class="rc-table mono">
+          <thead>
+            <tr>
+              <th>Queue Order</th>
+              <th>Demo Candidate ID</th>
+              <th>Timestamp</th>
+              <th>Detection Source (SIMULATED DRONE)</th>
+              <th>Drone Coords (SIMULATED)</th>
+              <th>Candidate GPS / Distance / ETA</th>
+              <th>Actual Class &amp; BBox (REAL API)</th>
+              <th>Model Confidence (REAL API)</th>
+              <th>Verification Status</th>
+              <th>Human-Review Action</th>
+            </tr>
+          </thead>
+          <tbody id="rcReviewQueueBody">
+            <!-- Populated dynamically by rescue-command.js -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="rescue-command.js"></script>
+</body>
+</html>

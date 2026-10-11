@@ -126,15 +126,34 @@ const ctx = canvas ? canvas.getContext('2d') : null;
 const flirCanvas = document.getElementById('flirCanvas');
 const flirCtx = flirCanvas ? flirCanvas.getContext('2d') : null;
 
-// Initialize on DOM Ready - Directly into Operations Map
+// Explicit State Placeholders & API Data Models for PostgreSQL / Supabase pgvector AI Database
+const SUPABASE_AI_DB_STATE = {
+  connected: true,
+  endpoint: 'https://aegis-sar-vector.supabase.co/rest/v1/sar_victim_detections',
+  activeModel: 'SAR-YOLOv9-Edge-v3',
+  secondaryModel: 'YOLOv8-Thermal-SAR v2.4',
+  activeEmbeddingsCount: 10240,
+  embeddingDimension: 512,
+  syncedRecords: []
+};
+
+// Initialize on DOM Ready - Coordinated with Auth Gateway (auth.js)
 window.addEventListener('DOMContentLoaded', () => {
-  initSimulation('avalanche', 'aegis');
-  initLeafletMap();
   setupEventListeners();
   resizeCanvases();
-  renderFleetSidebar();
-  updateOperatorHeaderBadge();
-  startSimulationLoop();
+  if (typeof AEGIS_AUTH !== 'undefined' && AEGIS_AUTH.isAuthenticated()) {
+    if (!sim) initSimulation('avalanche', 'aegis');
+    if (!window._leafletInited) {
+      window._leafletInited = true;
+      initLeafletMap();
+    }
+    updateOperatorHeaderBadge();
+    renderVictimQuickList();
+    if (!window._simLoopStarted) {
+      window._simLoopStarted = true;
+      startSimulationLoop();
+    }
+  }
 });
 
 window.addEventListener('resize', resizeCanvases);
@@ -318,23 +337,36 @@ function updateScenarioGeoHud(scenario) {
  * Setup All Event Handlers
  */
 function setupEventListeners() {
-  // 1. Navigation Tabs (Operations Map, Mission Planner, Victim Reports, Fleet Status, Mission Log)
+  // 1. Navigation Tabs (Operations Map, Mission Planner, Victim Reports, Rescue Team, Fleet Status, Mission Log)
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       playSound('click');
-      switchView(tab.dataset.view);
+      if (tab.dataset.view) {
+        switchView(tab.dataset.view);
+      }
     });
   });
 
-  // 2. Operator Profile Modal Switcher
+  // 2. Authenticated Operator Profile Modal
   const btnOperatorProfile = document.getElementById('btnOperatorProfile');
   const operatorModal = document.getElementById('operatorModal');
   const btnCloseOperatorModal = document.getElementById('btnCloseOperatorModal');
-  const btnConfirmOperatorProfile = document.getElementById('btnConfirmOperatorProfile');
+  const btnConfirmLogout = document.getElementById('btnConfirmLogout');
 
   if (btnOperatorProfile && operatorModal) {
     btnOperatorProfile.addEventListener('click', () => {
       playSound('click');
+      const session = typeof AEGIS_AUTH !== 'undefined' ? AEGIS_AUTH.getSession() : null;
+      const displayEl = document.getElementById('sessionProfileDisplay');
+      if (displayEl && session) {
+        displayEl.innerHTML = `
+          <div><span style="color:var(--text-muted);">RESCUER NAME:</span> <strong style="color:#fff;">${session.fullName}</strong></div>
+          <div><span style="color:var(--text-muted);">DESIGNATION:</span> <strong style="color:#3ecf8e;">${session.role}</strong></div>
+          <div><span style="color:var(--text-muted);">GOV RESCUER ID (LOGIN ID):</span> <strong style="color:#38bdf8;">${session.govId}</strong></div>
+          <div><span style="color:var(--text-muted);">CONTACT NUMBER:</span> <strong style="color:#fff;">${session.phone}</strong></div>
+          <div><span style="color:var(--text-muted);">UNIT:</span> <span style="color:#cbd5e1;">${session.unit || 'NDRF // SAR Command'}</span></div>
+        `;
+      }
       operatorModal.classList.add('open');
     });
   }
@@ -345,40 +377,21 @@ function setupEventListeners() {
     });
   }
 
-  document.querySelectorAll('.operator-preset-item').forEach(item => {
-    item.addEventListener('click', () => {
+  if (btnConfirmLogout) {
+    btnConfirmLogout.addEventListener('click', () => {
       playSound('click');
-      document.querySelectorAll('.operator-preset-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      document.getElementById('customOperatorName').value = '';
+      if (typeof handleLogout === 'function') handleLogout();
     });
-  });
+  }
 
-  if (btnConfirmOperatorProfile && operatorModal) {
-    btnConfirmOperatorProfile.addEventListener('click', () => {
+  // Toggle Supabase pgvector Schema Stub in Victim Reports
+  const btnToggleSchemaStub = document.getElementById('btnToggleSchemaStub');
+  const aiSchemaStubContainer = document.getElementById('aiSchemaStubContainer');
+  if (btnToggleSchemaStub && aiSchemaStubContainer) {
+    btnToggleSchemaStub.addEventListener('click', () => {
       playSound('click');
-      const customName = document.getElementById('customOperatorName').value.trim();
-      const activePreset = document.querySelector('.operator-preset-item.active');
-
-      if (customName) {
-        currentOperator.callsign = customName.toUpperCase();
-      } else if (activePreset) {
-        currentOperator.callsign = activePreset.dataset.callsign;
-      }
-
-      updateOperatorHeaderBadge();
-      operatorModal.classList.remove('open');
-      showTacticalNotification(`OPERATOR PROFILE UPDATED: ${currentOperator.callsign}`, 'info');
-
-      if (sim) {
-        sim.logEvent(
-          'INFO',
-          'OPERATOR',
-          currentOperator.callsign,
-          `Active SAR dispatch profile set to: ${currentOperator.callsign}.`,
-          null
-        );
-      }
+      const isHidden = aiSchemaStubContainer.style.display === 'none';
+      aiSchemaStubContainer.style.display = isHidden ? 'block' : 'none';
     });
   }
 
@@ -751,7 +764,7 @@ function setupEventListeners() {
 }
 
 /**
- * 5-Core View Switcher
+ * 6-Core View Switcher (Includes Rescue Team & Sensors Tab)
  */
 function switchView(viewName) {
   currentView = viewName;
@@ -763,6 +776,7 @@ function switchView(viewName) {
   const operationsView = document.getElementById('viewOperations');
   const plannerView = document.getElementById('viewPlanner');
   const reportsView = document.getElementById('viewReports');
+  const droneTeamView = document.getElementById('viewDroneTeam');
   const fleetView = document.getElementById('viewFleet');
   const logsView = document.getElementById('viewLogs');
 
@@ -770,6 +784,7 @@ function switchView(viewName) {
     if (operationsView) operationsView.classList.remove('view-hidden');
     if (plannerView) plannerView.classList.remove('active');
     if (reportsView) reportsView.classList.remove('active');
+    if (droneTeamView) droneTeamView.classList.remove('active');
     if (fleetView) fleetView.classList.remove('active');
     if (logsView) logsView.classList.remove('active');
 
@@ -781,6 +796,7 @@ function switchView(viewName) {
     if (operationsView) operationsView.classList.add('view-hidden');
     if (plannerView) plannerView.classList.toggle('active', viewName === 'planner');
     if (reportsView) reportsView.classList.toggle('active', viewName === 'reports');
+    if (droneTeamView) droneTeamView.classList.toggle('active', viewName === 'droneteam');
     if (fleetView) fleetView.classList.toggle('active', viewName === 'fleet');
     if (logsView) logsView.classList.toggle('active', viewName === 'logs');
 
@@ -918,7 +934,7 @@ function renderPlannerPage() {
 }
 
 /**
- * Render Victim Reports View (Strict Ethical Human Verification)
+ * Render Victim Reports View (Thermal IR + Trained AI Database Integration)
  */
 function renderVictimReportsPage() {
   const container = document.getElementById('victimReportsList');
@@ -946,6 +962,13 @@ function renderVictimReportsPage() {
 
   container.innerHTML = '';
 
+  const classifications = [
+    'Deep Snow Burial / Hypothermia Risk',
+    'Partial Avalanche Burial / Core Cooling',
+    'Surface Trauma / High Wind Exposure',
+    'Crevasse / Debris Pocket Entrapment'
+  ];
+
   const filtered = sim.survivors.filter(s => {
     if (victimFilter === 'critical') return s.dangerLevel === 'CRITICAL';
     if (victimFilter === 'urgent') return s.dangerLevel === 'URGENT';
@@ -966,9 +989,13 @@ function renderVictimReportsPage() {
     if (s.dangerLevel === 'CRITICAL') dangerBadgeClass = 'critical';
     else if (s.dangerLevel === 'URGENT') dangerBadgeClass = 'urgent';
 
-    const confidenceVal = s.confidence > 0 ? `${s.confidence.toFixed(1)}%` : '89.4%';
-    const detectTimeStr = s.foundAt !== null ? `T+${Math.floor(s.foundAt / 60)}m ${Math.floor(s.foundAt % 60)}s` : 'ESTIMATED PRIORITY';
-    const detectorNode = s.foundBy || 'ALPHA-02';
+    const rawConf = s.confidence > 0 ? s.confidence : (96.2 + (s.id % 3) * 1.1);
+    const confidenceVal = `${rawConf.toFixed(1)}%`;
+    const detectTimeStr = s.foundAt !== null ? `T+${Math.floor(s.foundAt / 60)}m ${Math.floor(s.foundAt % 60)}s` : 'SCANNING SECTOR';
+    const detectorNode = `${s.foundBy || 'ALPHA-04'} // FLIR IR`;
+    const aiTargetClass = s.dangerLevel === 'CRITICAL'
+      ? 'Deep Snow Burial / Hypothermia Risk'
+      : classifications[s.id % classifications.length];
 
     let statusPill = '';
     if (s.verified) {
@@ -984,30 +1011,41 @@ function renderVictimReportsPage() {
     card.innerHTML = `
       <div class="report-header">
         <span class="report-victim-id mono">
-          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${s.dangerLevel === 'CRITICAL' ? '#ef4444' : (s.dangerLevel === 'URGENT' ? '#f59e0b' : '#3ecf8e')};"></span>
-          DETECTION #${s.id < 10 ? '0' : ''}${s.id} // CAS-${8800 + s.id}
+          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${s.dangerLevel === 'CRITICAL' ? '#f43f5e' : (s.dangerLevel === 'URGENT' ? '#f59e0b' : '#10b981')};"></span>
+          VICTIM ID: CAS-${8800 + s.id} // DET #${s.id < 10 ? '0' : ''}${s.id}
         </span>
-        <span class="triage-badge ${dangerBadgeClass} mono">${s.dangerLevel} PRIORITY</span>
+        <span class="triage-badge ${dangerBadgeClass} mono">${s.dangerLevel}</span>
       </div>
 
-      <!-- Simulated Aerial Snapshot Preview -->
+      <!-- Dynamic Cold/Snow Landscape Thermal IR Snapshot -->
       <div class="aerial-snapshot-box" id="snapshotBox-${s.id}">
-        <canvas class="aerial-snapshot-canvas" id="snapCanvas-${s.id}" width="380" height="150"></canvas>
+        <canvas class="aerial-snapshot-canvas" id="snapCanvas-${s.id}" width="380" height="155"></canvas>
         <div class="snapshot-hud-overlay mono">
           <div style="display: flex; justify-content: space-between;">
-            <span>SENSOR: FLIR EO/IR THERMAL</span>
-            <span>ALT: 120m AGL</span>
+            <span style="color:#38bdf8;">${detectorNode}</span>
+            <span>TERRAIN: -14.2°C SNOW</span>
           </div>
           <div class="snapshot-reticle-box"></div>
           <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-            <span>TEMP: 36.8°C (Δ +${s.thermalDelta}°C)</span>
-            <span>CONFIDENCE: ${confidenceVal}</span>
+            <span style="color:#fb923c;">HEAT CORE: ${s.bodyTemp} (Δ +${s.thermalDelta}°C)</span>
+            <span style="color:#3ecf8e; font-weight:700;">CONF: ${confidenceVal}</span>
           </div>
         </div>
       </div>
 
-      <div style="font-size: 0.76rem; color: var(--text-secondary); line-height: 1.4;">
-        <strong style="color: #fff;">Field Assessment:</strong> ${s.medicalCondition}
+      <!-- AI Inference & Trained pgvector Database Block -->
+      <div class="ai-inference-card-box mono">
+        <div class="ai-model-header-line">
+          <span>YOLOv8-Thermal-SAR v2.4 // ${confidenceVal} Confidence</span>
+          <span style="color:#38bdf8;">pgvector #VEC-${900 + s.id}</span>
+        </div>
+        <div class="ai-classification-line">
+          Target Classification: <span style="color:#fde047;">${aiTargetClass}</span>
+        </div>
+        <div class="ai-vector-sync-line">
+          <span>Model: SAR-YOLOv9-Edge-v3</span>
+          <span>Cosine Sim: ${(0.94 + (s.id % 5) * 0.01).toFixed(3)}</span>
+        </div>
       </div>
 
       <div class="report-meta-grid mono">
@@ -1016,32 +1054,32 @@ function renderVictimReportsPage() {
           <span class="report-meta-val">${latLng[0].toFixed(5)}° N, ${latLng[1].toFixed(5)}° E</span>
         </div>
         <div class="report-meta-item">
-          <span class="report-meta-lbl">EST. SURVIVAL WINDOW</span>
-          <span class="report-meta-val" style="color: ${s.dangerLevel === 'CRITICAL' ? '#ef4444' : '#fff'};">${s.survivalWindow}</span>
+          <span class="report-meta-lbl">ESTIMATED BIOMETRICS</span>
+          <span class="report-meta-val" style="color: ${s.dangerLevel === 'CRITICAL' ? '#f43f5e' : '#3ecf8e'};">${s.heartRate} BPM • Body: ${s.bodyTemp}</span>
         </div>
         <div class="report-meta-item">
-          <span class="report-meta-lbl">DETECTING SENSOR NODE</span>
-          <span class="report-meta-val">${detectorNode} @ ${detectTimeStr}</span>
+          <span class="report-meta-lbl">SENSOR SOURCE</span>
+          <span class="report-meta-val">${detectorNode} (${detectTimeStr})</span>
         </div>
         <div class="report-meta-item">
-          <span class="report-meta-lbl">EST. BIOMETRIC VITALS</span>
-          <span class="report-meta-val">${s.heartRate} BPM (Body: ${s.bodyTemp})</span>
+          <span class="report-meta-lbl">SURVIVAL WINDOW</span>
+          <span class="report-meta-val">${s.survivalWindow}</span>
         </div>
       </div>
 
-      <div class="mono" style="font-size: 0.72rem; padding: 4px 0;">
+      <div class="mono" style="font-size: 0.7rem; padding: 2px 0;">
         ${statusPill}
       </div>
 
       <div class="responder-actions-row mono">
         <button class="btn-confirm-rescue" data-vid="${s.id}" ${s.verified ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''}>
-          ✅ CONFIRM SUBJECT &amp; DISPATCH TEAM
+          ✅ CONFIRM &amp; SYNC DB
         </button>
         <button class="btn-dismiss-false" data-vid="${s.id}" ${s.falsePositive ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''}>
-          ❌ DISMISS FALSE ALARM
+          ❌ FALSE ALARM
         </button>
         <button class="btn-console small btn-locate-map" data-x="${s.x}" data-y="${s.y}" data-vid="${s.id}">
-          🗺️ MAP
+          🗺️ CENTER MAP
         </button>
       </div>
     `;
@@ -1059,8 +1097,10 @@ function renderVictimReportsPage() {
       const vid = btn.dataset.vid;
       playSound('dispatch');
       sim.verifyVictim(vid);
+      syncVictimRecordToPgVector(vid);
       renderVictimReportsPage();
-      showTacticalNotification(`SUBJECT CONFIRMED: Ground rescue and Medevac unit dispatched to Casualty #${vid}.`, 'info');
+      renderVictimQuickList();
+      showTacticalNotification(`SUBJECT CONFIRMED & COMMITTED TO SUPABASE PGVECTOR: Casualty #${vid}.`, 'info');
     });
   });
 
@@ -1070,6 +1110,7 @@ function renderVictimReportsPage() {
       playSound('click');
       sim.flagFalsePositive(vid);
       renderVictimReportsPage();
+      renderVictimQuickList();
       showTacticalNotification(`Detection #${vid} dismissed as false alarm by Operator.`, 'warning');
     });
   });
@@ -1080,18 +1121,13 @@ function renderVictimReportsPage() {
       const vx = parseFloat(btn.dataset.x);
       const vy = parseFloat(btn.dataset.y);
       const vid = btn.dataset.vid;
-      switchView('operations');
-      const latLng = simToLatLng(vx, vy);
-      if (leafletMap) {
-        leafletMap.flyTo(latLng, 15, { duration: 1.0 });
-      }
-      showTacticalNotification(`CAMERA CENTERING: CASUALTY #${vid} (${latLng[0].toFixed(4)}° N, ${latLng[1].toFixed(4)}° E)`, 'info');
+      centerMapOnVictimCoordinates(vx, vy, vid);
     });
   });
 }
 
 /**
- * Draw Simulated Aerial Thermal Snapshot
+ * Draw Cold/Snow Landscape Thermal IR Snapshot with Vibrant Orange/Red Body Heat Glow
  */
 function drawAerialSnapshotCanvas(canvasId, victim) {
   const c = document.getElementById(canvasId);
@@ -1100,50 +1136,66 @@ function drawAerialSnapshotCanvas(canvasId, victim) {
   const W = c.width;
   const H = c.height;
 
-  // Dark Terrain Texture
-  sCtx.fillStyle = '#080808';
+  // 1. Cold Alpine Snow / Dark Blue-Black Terrain Gradient
+  const bgGrad = sCtx.createLinearGradient(0, 0, W, H);
+  bgGrad.addColorStop(0, '#040814');
+  bgGrad.addColorStop(0.55, '#091326');
+  bgGrad.addColorStop(1, '#050b18');
+  sCtx.fillStyle = bgGrad;
   sCtx.fillRect(0, 0, W, H);
 
-  // Elevation contours
-  sCtx.strokeStyle = 'rgba(62, 207, 142, 0.12)';
+  // 2. Cold Snow Drift & Glacial Ridge Contours (Cool Cyan/Blue Isotherms)
+  sCtx.strokeStyle = 'rgba(56, 189, 248, 0.14)';
   sCtx.lineWidth = 1.0;
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 5; i++) {
     sCtx.beginPath();
-    sCtx.arc(W / 2 + (victim.imageSeed % 50) - 25, H / 2 + (victim.imageSeed % 30) - 15, 25 + i * 20, 0, Math.PI * 2);
+    const offsetX = ((victim.imageSeed * (i + 1)) % 40) - 20;
+    const offsetY = ((victim.imageSeed * (i + 2)) % 26) - 13;
+    sCtx.ellipse(W / 2 + offsetX, H / 2 + offsetY, 34 + i * 26, 18 + i * 13, 0.2, 0, Math.PI * 2);
     sCtx.stroke();
   }
 
-  // Scanlines
-  sCtx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-  for (let y = 0; y < H; y += 4) {
+  // Subtle IR Sensor Scanlines
+  sCtx.fillStyle = 'rgba(148, 163, 184, 0.03)';
+  for (let y = 0; y < H; y += 3) {
     sCtx.fillRect(0, y, W, 1);
   }
 
-  // Radiant Body Heat Signature (White-Hot IR)
-  const cx = W / 2;
-  const cy = H / 2;
-  const heatRadius = victim.dangerLevel === 'CRITICAL' ? 16 : 20;
+  // 3. Vibrant Orange/Red/White-Hot Thermal Body Heat Glow
+  const cx = W / 2 + ((victim.imageSeed % 18) - 9);
+  const cy = H / 2 + ((victim.imageSeed % 14) - 7);
+  const outerRadius = victim.dangerLevel === 'CRITICAL' ? 34 : 40;
 
-  const grad = sCtx.createRadialGradient(cx, cy, 0, cx, cy, heatRadius);
-  grad.addColorStop(0, '#ffffff'); // pure white-hot
-  grad.addColorStop(0.35, 'rgba(254, 240, 138, 0.9)'); // yellow
-  grad.addColorStop(0.7, 'rgba(239, 68, 68, 0.65)'); // red bloom
-  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  const heatBloom = sCtx.createRadialGradient(cx, cy, 1, cx, cy, outerRadius);
+  heatBloom.addColorStop(0, '#ffffff');                    // White-hot core (torso/head)
+  heatBloom.addColorStop(0.22, '#fef08a');                 // Intense yellow
+  heatBloom.addColorStop(0.48, 'rgba(249, 115, 22, 0.92)'); // Vibrant orange thermal signature
+  heatBloom.addColorStop(0.75, 'rgba(244, 63, 94, 0.55)');  // Crimson/rose heat halo
+  heatBloom.addColorStop(1, 'rgba(9, 19, 38, 0)');         // Blends into cold blue/black snow
 
-  sCtx.fillStyle = grad;
+  sCtx.fillStyle = heatBloom;
   sCtx.beginPath();
-  sCtx.arc(cx, cy, heatRadius, 0, Math.PI * 2);
+  sCtx.arc(cx, cy, outerRadius, 0, Math.PI * 2);
   sCtx.fill();
 
-  // Target Reticle
-  sCtx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
-  sCtx.lineWidth = 1.2;
+  // Articulated Human Heat Silhouette (Head + Torso + Limbs)
+  sCtx.fillStyle = '#ffffff';
   sCtx.beginPath();
-  sCtx.moveTo(cx - 16, cy); sCtx.lineTo(cx - 5, cy);
-  sCtx.moveTo(cx + 5, cy); sCtx.lineTo(cx + 16, cy);
-  sCtx.moveTo(cx, cy - 16); sCtx.lineTo(cx, cy - 5);
-  sCtx.moveTo(cx, cy + 5); sCtx.lineTo(cx, cy + 16);
+  sCtx.arc(cx - 6, cy - 5, 4, 0, Math.PI * 2); // Head
+  sCtx.fill();
+
+  sCtx.strokeStyle = '#fef08a';
+  sCtx.lineWidth = 4.5;
+  sCtx.lineCap = 'round';
+  sCtx.beginPath();
+  sCtx.moveTo(cx - 2, cy - 2);
+  sCtx.lineTo(cx + 9, cy + 5); // Torso
   sCtx.stroke();
+
+  // 4. AI Bounding Box & Lock Reticle
+  sCtx.strokeStyle = 'rgba(244, 63, 94, 0.9)';
+  sCtx.lineWidth = 1.3;
+  sCtx.strokeRect(cx - 24, cy - 20, 48, 40);
 }
 
 /**
@@ -1830,8 +1882,10 @@ function renderFlirFeed() {
   }
 }
 
+let _lastQuickListSignature = '';
+
 /**
- * Update UI Telemetry & Cards
+ * Update UI Telemetry & Compact Victim Quick-List
  */
 function updateUI() {
   if (!sim) return;
@@ -1839,6 +1893,7 @@ function updateUI() {
 
   const simTimeEl = document.getElementById('statSimTime');
   const covEl = document.getElementById('statCoverage');
+  const covInlineEl = document.getElementById('statCoverageInline');
   const surEl = document.getElementById('statSurvivors');
   const actEl = document.getElementById('statActiveDrones');
   const mtftEl = document.getElementById('statMtft');
@@ -1846,6 +1901,7 @@ function updateUI() {
 
   if (simTimeEl) simTimeEl.textContent = `${Math.floor(stats.simTimeSeconds / 60)}m ${stats.simTimeSeconds % 60}s`;
   if (covEl) covEl.textContent = `${stats.coveragePercent}%`;
+  if (covInlineEl) covInlineEl.textContent = `${stats.coveragePercent}%`;
   if (surEl) surEl.textContent = `${stats.survivorsFound} / ${stats.survivorsTotal}`;
   if (actEl) actEl.textContent = `${stats.activeDronesCount} / ${sim.drones.length}`;
   if (mtftEl) mtftEl.textContent = stats.mtftSeconds !== 'N/A' ? `${stats.mtftSeconds}s` : '--';
@@ -1854,57 +1910,122 @@ function updateUI() {
   const covBar = document.getElementById('coverageBarFill');
   if (covBar) covBar.style.width = `${stats.coveragePercent}%`;
 
-  const nodeCountSidebar = document.getElementById('sidebarActiveNodeCount');
-  if (nodeCountSidebar) nodeCountSidebar.textContent = `${stats.activeDronesCount} DRONES`;
-
-  renderFleetSidebar();
+  // Only re-render the Victim Quick-List when survivor state changes (avoids 60fps DOM rebuild blocking clicks)
+  const sig = sim.survivors.map(s => `${s.id}:${s.found ? 1 : 0}:${s.verified ? 1 : 0}:${s.falsePositive ? 1 : 0}:${s.foundBy || ''}`).join('|');
+  if (sig !== _lastQuickListSignature) {
+    _lastQuickListSignature = sig;
+    renderVictimQuickList();
+  }
 }
 
 /**
- * Render Left Sidebar Fleet Cards
+ * Render Compact Victim Quick-List in Sidebar (Replaces Removed Speed & Airborne Fleet Panels)
+ * Shows: Victim ID, Status Badge (CRITICAL, URGENT, STABLE), Last Seen Coordinates, and Sensor Source
  */
-function renderFleetSidebar() {
-  const list = document.getElementById('droneFleetList');
-  if (!list || !sim) return;
+function renderVictimQuickList() {
+  const listEl = document.getElementById('victimQuickList');
+  const badgeEl = document.getElementById('victimQuickCountBadge');
+  if (!listEl || !sim) return;
 
-  list.innerHTML = '';
-  sim.drones.forEach(d => {
-    const card = document.createElement('div');
-    const isSelected = d.id === selectedDroneId;
-    card.className = `drone-card ${d.status === 'DEAD' ? 'dead' : ''} ${isSelected ? 'selected' : ''}`;
+  const detectedCount = sim.survivors.filter(s => s.found).length;
+  if (badgeEl) {
+    badgeEl.textContent = `${detectedCount} / ${sim.survivors.length} LOCATED`;
+  }
 
-    let dotColor = '#10b981';
-    if (d.status === 'DEAD') dotColor = '#ef4444';
-    else if (d.status === 'RTL' || d.battery < 20) dotColor = '#f59e0b';
+  // Sort: CRITICAL first, then URGENT, then STABLE
+  const priorityOrder = { CRITICAL: 0, URGENT: 1, STABLE: 2 };
+  const sorted = [...sim.survivors].sort((a, b) => {
+    return (priorityOrder[a.dangerLevel] ?? 3) - (priorityOrder[b.dangerLevel] ?? 3);
+  });
 
-    let roleText = 'SEARCH';
-    if (d.status === 'DEAD') roleText = 'LOST';
-    else if (d.status === 'RTL') roleText = 'RTL (LOW)';
+  listEl.innerHTML = '';
 
-    card.innerHTML = `
-      <div class="drone-card-header">
-        <span class="drone-callsign">
-          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: ${dotColor};"></span>
-          ${d.callsign}
-        </span>
-        <span class="drone-role-badge">${roleText}</span>
+  sorted.forEach(s => {
+    const latLng = simToLatLng(s.x, s.y);
+    const pClass = s.dangerLevel === 'CRITICAL'
+      ? 'priority-critical'
+      : (s.dangerLevel === 'URGENT' ? 'priority-urgent' : 'priority-stable');
+    const bClass = s.dangerLevel === 'CRITICAL'
+      ? 'critical'
+      : (s.dangerLevel === 'URGENT' ? 'urgent' : 'stable');
+
+    const sensorNode = s.foundBy
+      ? `${s.foundBy} // FLIR IR`
+      : `ALPHA-0${((s.id - 1) % 9) + 1} // FLIR IR`;
+
+    const stateTag = s.verified
+      ? 'CONFIRMED'
+      : (s.found ? 'DETECTED' : 'EST. PRIOR');
+
+    const item = document.createElement('div');
+    item.className = `victim-quick-item ${pClass}`;
+    item.innerHTML = `
+      <div class="victim-quick-top">
+        <span class="victim-quick-id">CAS-${8800 + s.id} (VICTIM #0${s.id})</span>
+        <span class="victim-quick-badge ${bClass}">${s.dangerLevel}</span>
       </div>
-      <div class="drone-battery-bar">
-        <div class="drone-battery-fill" style="width: ${d.battery}%; background: ${d.battery < 20 ? 'var(--accent-red)' : 'var(--accent-emerald)'}"></div>
-      </div>
-      <div class="drone-telemetry-row mono">
-        <span>BAT: ${Math.round(d.battery)}%</span>
-        <span>FOUND: ${d.survivorsDetected}</span>
-        <span>${d.signalDbm} dBm</span>
+      <div class="victim-quick-coords">GPS: ${latLng[0].toFixed(4)}° N, ${latLng[1].toFixed(4)}° E</div>
+      <div class="victim-quick-source">
+        <span>${sensorNode}</span>
+        <span style="color: ${s.verified ? '#10b981' : (s.found ? '#f59e0b' : '#64748b')};">[${stateTag}]</span>
       </div>
     `;
 
-    card.addEventListener('click', () => {
+    item.addEventListener('click', () => {
       playSound('click');
-      selectedDroneId = d.id;
-      renderFleetSidebar();
+      centerMapOnVictimCoordinates(s.x, s.y, s.id, s.dangerLevel);
     });
 
-    list.appendChild(card);
+    listEl.appendChild(item);
   });
+}
+
+/**
+ * Jump / Center the Map View on a Victim's Coordinates
+ */
+function centerMapOnVictimCoordinates(simX, simY, victimId, priorityLabel = '') {
+  if (currentView !== 'operations') {
+    switchView('operations');
+  }
+  const latLng = simToLatLng(simX, simY);
+  if (leafletMap) {
+    leafletMap.flyTo(latLng, 15, { duration: 0.9 });
+  }
+  const pText = priorityLabel ? ` [${priorityLabel}]` : '';
+  showTacticalNotification(
+    `MAP CENTERED ON VICTIM CAS-${8800 + Number(victimId)}${pText} • ${latLng[0].toFixed(4)}° N, ${latLng[1].toFixed(4)}° E`,
+    'info'
+  );
+}
+
+/**
+ * Sync Confirmed Victim Embedding & Classification to Supabase pgvector State
+ */
+function syncVictimRecordToPgVector(victimId) {
+  if (!sim) return;
+  const v = sim.survivors.find(s => s.id === Number(victimId));
+  if (!v) return;
+  const latLng = simToLatLng(v.x, v.y);
+  const record = {
+    victim_id: `CAS-${8800 + v.id}`,
+    detected_by_node: `${v.foundBy || 'ALPHA-04'} // FLIR IR`,
+    ai_model_version: SUPABASE_AI_DB_STATE.activeModel,
+    confidence_score: v.confidence > 0 ? Number(v.confidence.toFixed(1)) : 98.6,
+    target_classification: v.dangerLevel === 'CRITICAL' ? 'Deep Snow Burial / Hypothermia Risk' : 'Partial Burial / Exposure',
+    estimated_bpm: v.heartRate,
+    estimated_body_temp: v.bodyTemp,
+    gps_coordinates: { lat: Number(latLng[0].toFixed(5)), lon: Number(latLng[1].toFixed(5)) },
+    verified_by_rescuer: currentOperator.govId || currentOperator.callsign,
+    synced_at: new Date().toISOString()
+  };
+  SUPABASE_AI_DB_STATE.syncedRecords.push(record);
+  const streamStub = document.getElementById('liveInferenceStreamStub');
+  if (streamStub) {
+    streamStub.textContent = `[COMMITTED] ${record.victim_id} (${record.confidence_score}% conf) synced by ${record.verified_by_rescuer}`;
+  }
+}
+
+// Keep no-op stub if called externally
+function renderFleetSidebar() {
+  renderVictimQuickList();
 }

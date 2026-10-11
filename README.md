@@ -96,10 +96,25 @@ $$\mathbf{B}_j^{(t+1)} = \mathbf{B}_k^{(t+1)} = \frac{1}{2} \left( \mathbf{B}_j^
 
 ---
 
-## 🎯 Platform Verification & Production Readiness
+## 🤖 Experimental AI Person Detection & Multi-Drone Rescue Command
 
-- [x] **Zero-Dependency Architecture:** Pure vanilla JS frontend + Leaflet GIS mapping with offline fallback.
+This repository includes two frontend interfaces connected to a FastAPI YOLO person-detection backend (`GET /health`, `POST /detect` via `multipart/form-data` field `file`, and Swagger docs at `/docs`):
+
+1. **Single-Image AI Detection (`ai-detection.html`):** Upload thermal/aerial imagery, inspect `image_width`, `image_height`, `detection_count`, `detections` (`class`, `confidence`, `bbox_xyxy`), and `gps_coordinates`, and view responsive bounding-box overlays.
+2. **Multi-Drone Rescue Command (`rescue-command.html`):** Combines a 10-drone **SIMULATED** fleet overview (`Drone 01`–`Drone 10`) with live FastAPI YOLO inference and a confidence-sorted candidate review queue (`AI review order — confidence only`).
+
+### ⚠️ Temporary ngrok Tunnel & Safety Notice (Not Production-Ready)
+- **Temporary & Configurable Backend URL:** The default API base URL (`https://slam-slapping-gusty.ngrok-free.dev`) points to a **temporary Google Colab / ngrok tunnel** and will change whenever the backend session restarts. You can edit the API Base URL directly in the input field at the top of `ai-detection.html` and `rescue-command.html` without modifying code.
+- **Experimental Prototype Only:** The YOLO detector is an **experimental demonstration** and is **not production-ready**. Thermal detection accuracy is unvalidated.
+- **Unverified Candidates Requiring Human Review:** Every detection is strictly labeled as an **unverified candidate requiring human review** and must never be treated as a confirmed survivor or sole basis for rescue dispatch.
+- **GPS Unavailable from Bounding Boxes:** Pixel bounding boxes (`bbox_xyxy`) do not provide geographic coordinates. When `gps_coordinates` is `null`, the UI explicitly displays **`GPS unavailable`** rather than inventing coordinates, distances, or ETAs.
+- **Simulated vs. Real Separation:** All 10 drone positions, battery levels, and patrol states in the dashboard are clearly labeled as **SIMULATED DEMO DATA** and are never presented as live hardware telemetry.
+
+---
+
+## 🎯 Platform Capabilities Summary
+
+- [x] **Zero-Dependency Frontend Architecture:** Pure HTML5, CSS3, and vanilla JavaScript + local Leaflet GIS mapping.
 - [x] **Headless Python Benchmark Suite:** Reproducible Monte Carlo evaluation scripts comparing against classical baselines.
-- [x] **Interactive Tactical Command Console:** 60 FPS HTML5 Canvas with real-time audio telemetry and simulated chaos injection.
-- [x] **Defense-Tech Architecture Dossier:** Complete specifications for hardware payloads, Bayesian information gain, and gossip protocols.
-- [x] **Full 5-Core Operator Suite:** Operations Map, Mission Planner, Victim Reports with FLIR Snapshots, Fleet Status, and Mission Log.
+- [x] **Interactive Tactical Command Console:** 60 FPS HTML5 Canvas with simulated chaos injection (`index.html`).
+- [x] **Experimental AI Detection & Rescue Command:** Live FastAPI `/health` and `/detect` integration (`ai-detection.html`, `rescue-command.html`).

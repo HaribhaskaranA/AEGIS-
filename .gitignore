@@ -1,0 +1,36 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*service-account*.json
+
+# Python Caches & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Node & Frontend
+node_modules/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# ML / YOLO Model Artifacts
+*.pt
+*.pth
+*.onnx
+*.engine
+*.weights
+*.tflite
+*.h5
+
+# OS Metadata
+.DS_Store
+Thumbs.db

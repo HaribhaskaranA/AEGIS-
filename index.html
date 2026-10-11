@@ -11,774 +11,1220 @@
 <body>
 
   <!-- ======================================================== -->
-  <!-- TOP CONSOLE NAVIGATION HEADER (SUPABASE STYLE)           -->
+  <!-- AUTHENTICATION GATEWAY (OPENS AT STARTUP)                -->
   <!-- ======================================================== -->
-  <header class="console-header">
-    <div class="header-brand">
-      <div class="brand-logo">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
-        </svg>
-      </div>
-      <div>
-        <div class="brand-title">
-          AEGIS SAR
-          <span class="badge-subtle">SWARM PLANNER</span>
-          <span class="badge-demo mono">SIMULATION / DEMO DATA</span>
+  <div id="authOverlay" class="auth-overlay">
+
+    <!-- LOGIN PAGE -->
+    <div id="loginPage" class="auth-page" style="display:flex;">
+      <div class="auth-card glass-panel">
+        <div class="auth-brand">
+          <div class="brand-logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+            </svg>
+          </div>
+          <div>
+            <div class="auth-brand-title">
+              AEGIS SAR
+              <span class="badge-emerald mono">MISSION COMMAND</span>
+            </div>
+            <div class="auth-brand-sub mono">DEFENSE-GRADE AUTONOMOUS SWARM COORDINATOR</div>
+          </div>
         </div>
-        <div class="brand-subtitle mono">
-          AUTONOMOUS MULTI-AGENT DRONE SEARCH &amp; RESCUE COORDINATOR
+
+        <h2 class="auth-heading">Rescuer Authentication</h2>
+        <p class="auth-sub">Sign in using your registered <strong>Government Rescuer ID</strong> as your Login ID.</p>
+
+        <div id="loginSuccessBanner" class="auth-success mono" style="display:none;"></div>
+
+        <form id="loginForm" class="auth-form">
+          <div class="auth-field">
+            <label class="auth-label mono">LOGIN ID (GOVERNMENT RESCUER ID)</label>
+            <input type="text" id="loginGovId" class="auth-input mono" placeholder="e.g. NDRF-IND-4092" autocomplete="username" required>
+          </div>
+          <div class="auth-field">
+            <label class="auth-label mono">PASSWORD</label>
+            <input type="password" id="loginPassword" class="auth-input" placeholder="Enter your password" autocomplete="current-password" required>
+          </div>
+          <div id="loginError" class="auth-error mono" style="display:none;"></div>
+          <button type="submit" class="auth-btn-primary mono">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            LOGIN TO MISSION CONSOLE
+          </button>
+        </form>
+
+        <div class="auth-footer">
+          Not registered yet?
+          <a href="#" id="goToRegister" class="auth-link mono">REGISTER NEW RESCUER &rarr;</a>
         </div>
       </div>
     </div>
 
-    <!-- Five Core Navigation Tabs (Operations Map is Default) -->
-    <nav class="nav-tabs mono">
-      <button class="nav-tab active" data-view="operations" id="tabOperations">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
-        OPERATIONS MAP
-      </button>
-      <button class="nav-tab" data-view="planner" id="tabPlanner">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-        MISSION PLANNER
-      </button>
-      <button class="nav-tab" data-view="reports" id="tabReports">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        VICTIM REPORTS
-      </button>
-      <button class="nav-tab" data-view="fleet" id="tabFleet">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 19 21 12 17 5 21 12 2"/></svg>
-        FLEET STATUS
-      </button>
-      <button class="nav-tab" data-view="logs" id="tabLogs">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        MISSION LOG
-      </button>
-    </nav>
+    <!-- REGISTRATION PAGE -->
+    <div id="registerPage" class="auth-page" style="display:none;">
+      <div class="auth-card auth-card-wide glass-panel">
+        <div class="auth-brand">
+          <div class="brand-logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+            </svg>
+          </div>
+          <div>
+            <div class="auth-brand-title">
+              AEGIS SAR
+              <span class="badge-subtle mono">RESCUER ENROLLMENT</span>
+            </div>
+            <div class="auth-brand-sub mono">OFFICIAL GOVERNMENT SAR RESPONDER CREDENTIALING</div>
+          </div>
+        </div>
 
-    <!-- Header Actions & Honest Operator Profile Selector -->
-    <div class="header-actions">
-      <!-- Operator Profile Selector (Replaces military login) -->
-      <div class="operator-profile-btn mono" id="btnOperatorProfile" title="Click to Switch Operator Profile">
-        <div class="status-indicator-green"></div>
-        <span id="operatorCallsignText">SARAH CHEN [INCIDENT COMMANDER]</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        <h2 class="auth-heading">Rescuer Registration</h2>
+        <p class="auth-sub">Enter your official responder details. After registering, your <strong>Government Rescuer ID</strong> will be used as your Login ID.</p>
+
+        <form id="registerForm" class="auth-form">
+          <div class="auth-form-grid">
+            <div class="auth-field">
+              <label class="auth-label mono">RESCUER FULL NAME *</label>
+              <input type="text" id="regFullName" class="auth-input" placeholder="e.g. Capt. Vikram Rathore" required>
+            </div>
+            <div class="auth-field">
+              <label class="auth-label mono">RESCUE ROLE / DESIGNATION *</label>
+              <select id="regRole" class="auth-input auth-select mono" required>
+                <option value="">Select Official Role...</option>
+                <option value="Incident Commander">Incident Commander</option>
+                <option value="Swarm Flight Director">Swarm Flight Director</option>
+                <option value="Thermal &amp; Sensor Analyst">Thermal &amp; Sensor Analyst</option>
+                <option value="Ground Extraction Lead">Ground Extraction Lead</option>
+                <option value="Combat / Mountain Medic">Combat / Mountain Medic</option>
+                <option value="Disaster Response Officer">Disaster Response Officer</option>
+              </select>
+            </div>
+            <div class="auth-field">
+              <label class="auth-label mono">CONTACT NUMBER *</label>
+              <input type="tel" id="regPhone" class="auth-input mono" placeholder="e.g. +91 98765 43210" required>
+            </div>
+            <div class="auth-field">
+              <label class="auth-label mono">GOVERNMENT RESCUER ID * <span style="color:#3ecf8e;">(YOUR LOGIN ID)</span></label>
+              <input type="text" id="regGovId" class="auth-input mono" placeholder="e.g. NDRF-IND-4092" required>
+            </div>
+            <div class="auth-field">
+              <label class="auth-label mono">AGENCY / FORCE UNIT</label>
+              <input type="text" id="regUnit" class="auth-input mono" placeholder="e.g. NDRF 8th Battalion / Alpine SAR" value="NDRF // Alpine SAR Wing">
+            </div>
+            <div class="auth-field">
+              <label class="auth-label mono">ASSIGNED LOGIN ID PREVIEW</label>
+              <div id="regLoginIdPreview" class="auth-login-preview mono">ENTER GOV RESCUER ID ABOVE</div>
+            </div>
+            <div class="auth-field">
+              <label class="auth-label mono">CREATE PASSWORD *</label>
+              <input type="password" id="regPassword" class="auth-input" placeholder="Enter secure password" autocomplete="new-password" required>
+            </div>
+            <div class="auth-field">
+              <label class="auth-label mono">CONFIRM PASSWORD *</label>
+              <input type="password" id="regConfirmPassword" class="auth-input" placeholder="Confirm password" autocomplete="new-password" required>
+            </div>
+          </div>
+
+          <div id="registerError" class="auth-error mono" style="display:none;"></div>
+
+          <button type="submit" class="auth-btn-primary mono">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            COMPLETE REGISTRATION &amp; PROCEED TO LOGIN
+          </button>
+        </form>
+
+        <div class="auth-footer">
+          Already registered with a Government Rescuer ID?
+          <a href="#" id="goToLogin" class="auth-link mono">&larr; BACK TO LOGIN</a>
+        </div>
       </div>
-
-      <!-- Audio Muted by Default -->
-      <button class="btn-console" id="btnToggleSound" title="Audio is muted by default. Click to enable sound alerts.">
-        🔇 AUDIO: OFF
-      </button>
-
-      <!-- Clean Help / About Modal Trigger -->
-      <button class="btn-console" id="btnHelpModal" title="System Architecture &amp; Multi-Agent Search Principles">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        HELP / ABOUT
-      </button>
     </div>
-  </header>
 
-  <!-- ======================================================== -->
-  <!-- VIEW 1: OPERATIONS MAP (DEFAULT PAGE ON LOAD)            -->
-  <!-- ======================================================== -->
-  <div class="app-container" id="viewOperations">
-
-    <!-- Left Fleet Quick Telemetry Sidebar -->
-    <aside class="sidebar-fleet">
-      <div class="sidebar-header">
-        <span class="sidebar-title mono">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/></svg>
-          AIRBORNE FLEET
-        </span>
-        <span class="mono badge-emerald" id="sidebarActiveNodeCount">10 DRONES</span>
-      </div>
-      <div class="drone-list" id="droneFleetList">
-        <!-- Rendered dynamically by app.js -->
-      </div>
-    </aside>
-
-    <!-- Center GIS Map Viewport -->
-    <main class="canvas-viewport">
-
-      <!-- Dynamic Fleet Reassignment Alert Banner (Appears if battery < 20% or lost) -->
-      <div class="operations-alert-banner mono" id="opsReassignBanner" style="display: none;">
-        <div class="alert-content">
-          <span class="alert-icon">⚠️</span>
-          <span id="opsAlertBannerText">WARNING: Drone ALPHA-03 low battery (18%). Sector 3 requires reassignment.</span>
-        </div>
-        <button type="button" class="btn-console primary small" id="btnOpsQuickReassign">
-          ⚡ REASSIGN SECTOR TO STANDBY DRONE
-        </button>
-      </div>
-
-      <!-- Leaflet Geographic Map Container -->
-      <div id="mapContainer"></div>
-
-      <!-- High-Resolution Overlay Mission Canvas -->
-      <canvas id="missionCanvas"></canvas>
-
-      <!-- Map Zoom & 10KM Radius Controls (Clean Supabase Style) -->
-      <div class="map-zoom-toolbar mono">
-        <div class="zoom-btn-group">
-          <button type="button" class="zoom-tool-btn" id="btnZoomIn" title="Zoom In (+)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-          <button type="button" class="zoom-tool-btn" id="btnZoomOut" title="Zoom Out (-)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        </div>
-        <div class="zoom-presets-group">
-          <button type="button" class="zoom-preset-btn active" id="btnZoom10km" title="Fit 10km Operational Search Radius">10 KM RADIUS</button>
-          <button type="button" class="zoom-preset-btn" id="btnZoom5km" title="Focus 5km Core Search Sector">5 KM SECTOR</button>
-          <button type="button" class="zoom-preset-btn" id="btnZoom2km" title="Focus 2km Tactical Drone Cluster">2 KM TACTICAL</button>
-        </div>
-        <div class="zoom-radius-indicator" id="mapRadiusIndicator" title="Visible Map Radius">
-          <span class="radius-dot"></span>
-          <span id="radiusLabelText">RADIUS: 10.0 KM (SEARCH BOUNDARY)</span>
-        </div>
-      </div>
-
-      <!-- Map Layer Switcher Toolbar -->
-      <div class="map-layer-toolbar mono">
-        <button class="layer-btn active" id="layerSatellite" data-layer="satellite">🛰️ SATELLITE</button>
-        <button class="layer-btn" id="layerDark" data-layer="dark">🌌 DARK CANVAS</button>
-        <button class="layer-btn" id="layerTopo" data-layer="topo">⛰️ TOPOGRAPHY</button>
-      </div>
-
-      <!-- Canvas Overlay HUD -->
-      <div class="canvas-overlay-hud mono">
-        <div id="hudSectorTitle">SEARCH SECTOR: 5.0 KM × 5.0 KM (25.0 KM²) • ZERMATT RIDGE</div>
-        <div id="hudGpsCoordinates" style="font-size: 0.68rem; color: var(--accent-emerald); margin-top: 2px;">
-          GPS: 45.9763° N, 7.7491° E • SWISS ALPS
-        </div>
-        <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 2px;">
-          RF MESH RANGE: &le; 1,200m • SENSOR FOV: 260m • [SIMULATED SCENARIO]
-        </div>
-      </div>
-
-      <!-- Plain-Language Readable Map Legend -->
-      <div class="canvas-legend mono">
-        <div class="legend-header">OPERATIONS MAP LEGEND</div>
-        <div class="legend-item">
-          <div class="legend-symbol" style="border: 1.5px dashed #ffa116;"></div>
-          <span>10.0 km Operational Search Boundary</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-symbol" style="background: rgba(62, 207, 142, 0.35); border: 1px solid #3ecf8e;"></div>
-          <span>Cleared / Searched Territory</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-symbol" style="background: #3ecf8e; border-radius: 2px;"></div>
-          <span>Drone &amp; RF Mesh Communication Link</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-symbol" style="background: #f59e0b; border-radius: 50%; border: 1px solid #fff;"></div>
-          <span>Possible Detection (Pending Human Review)</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-symbol" style="background: #10b981; border-radius: 50%; border: 1px solid #fff;"></div>
-          <span>Confirmed Subject (Rescue Dispatched)</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-symbol" style="border: 1px dashed #ef4444; background: rgba(239, 68, 68, 0.25);"></div>
-          <span>Hazard / Restricted Airspace</span>
-        </div>
-      </div>
-
-      <!-- Onboard Drone FLIR Thermal Gimbal PIP -->
-      <div class="thermal-pip-card mono" id="thermalPipCard">
-        <div class="thermal-pip-header">
-          <span id="flirDroneLabel">ALPHA-01 // FLIR EO/IR CAMERA</span>
-          <div class="pip-controls">
-            <button class="pip-toggle-btn" id="btnMinFlir" title="Minimize / Expand">&minus;</button>
-          </div>
-        </div>
-        <div class="thermal-feed-container">
-          <canvas id="flirCanvas" width="250" height="150"></canvas>
-          <div class="flir-hud-overlay">
-            <div style="display: flex; justify-content: space-between;">
-              <span>MODE: THERMAL IR</span>
-              <span id="flirAlt">ALT: 120m AGL</span>
-            </div>
-            <div class="flir-reticle"></div>
-            <div style="display: flex; justify-content: space-between;">
-              <span id="flirTargetStatus" style="color: #38bdf8;">SEARCHING ASSIGNED SECTOR...</span>
-              <span>FOV: 260m</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="tacticalToast" class="tactical-toast" style="display: none;"></div>
-    </main>
-
-    <!-- Right Controls & Mission Telemetry Panel -->
-    <aside class="sidebar-controls">
-
-      <!-- Section: Search Algorithm & Disaster Scenario -->
-      <div class="control-section">
-        <div class="section-label mono">
-          <span>SEARCH ALGORITHM</span>
-        </div>
-        <div class="algo-tabs mono">
-          <div class="algo-tab active" data-algo="aegis">DECENTRALIZED SWARM</div>
-          <div class="algo-tab" data-algo="lawnmower">CONVENTIONAL SWEEP</div>
-        </div>
-
-        <div class="section-label mono" style="margin-top: 14px;">
-          <span>DISASTER SCENARIO (SIMULATION)</span>
-        </div>
-        <select id="scenarioSelect" class="console-select mono">
-          <option value="avalanche">Alpine Avalanche (Zermatt Ridge, Switzerland)</option>
-          <option value="flood">Coastal Tsunami Surge (Fukushima Plain, Japan)</option>
-          <option value="earthquake">Urban Structural Collapse (Kahramanmaraş Fault)</option>
-          <option value="uniform">Wilderness Dispersion (Yellowstone Basin, USA)</option>
-        </select>
-      </div>
-
-      <!-- Section: Simulation Playback -->
-      <div class="control-section">
-        <div class="section-label mono">
-          <span>SIMULATION EXECUTION</span>
-        </div>
-        <div class="btn-group">
-          <button class="btn-console primary" id="btnPlayPause">⏸ PAUSE</button>
-          <button class="btn-console" id="btnStep">⏭ STEP</button>
-          <button class="btn-console" id="btnReset">🔄 RESET</button>
-        </div>
-
-        <div class="slider-group">
-          <div class="slider-label mono">
-            <span>SIMULATION SPEED</span>
-            <span id="speedDisplay" style="color: var(--accent-emerald);">2x</span>
-          </div>
-          <input type="range" id="speedSlider" min="1" max="10" value="2">
-        </div>
-
-        <div style="margin-top: 10px;">
-          <div class="slider-label mono">
-            <span>SEARCH COVERAGE PROGRESS</span>
-          </div>
-          <div class="progress-bar-track">
-            <div id="coverageBarFill" class="progress-bar-fill" style="width: 0%;"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Section: Redundancy & Attrition Test -->
-      <div class="control-section">
-        <div class="stress-test-box">
-          <div class="stress-test-title mono">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            REDUNDANCY &amp; RESILIENCE TESTING
-          </div>
-          <p style="font-size: 0.73rem; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.4;">
-            Simulate drone hardware loss mid-mission to demonstrate autonomous Voronoi dynamic replanning without operator intervention.
-          </p>
-          <button class="btn-console danger" id="btnKill30" style="width: 100%; justify-content: center; margin-bottom: 10px;">
-            ⚡ SIMULATE 30% DRONE LOSS (FAILOVER)
-          </button>
-          
-          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.74rem;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary);">
-              <input type="checkbox" id="chkRfJamming">
-              <span>RF Degradation / Mountain Shadows (Drop to 350m)</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary);">
-              <input type="checkbox" id="chkSensorNoise">
-              <span>Adverse Weather Noise (Optical &amp; Thermal &plusmn;35%)</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Section: Live Mission Telemetry -->
-      <div class="control-section" style="border-bottom: none;">
-        <div class="section-label mono">
-          <span>LIVE MISSION TELEMETRY [DEMO]</span>
-        </div>
-        <div class="mono" style="font-size: 0.74rem; display: flex; flex-direction: column; gap: 6px; color: var(--text-secondary);">
-          <div style="display: flex; justify-content: space-between;">
-            <span>ELAPSED MISSION TIME:</span>
-            <span id="statSimTime" style="color: #fff; font-weight: 700;">0m 0s</span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span>SURFACE AREA SEARCHED:</span>
-            <span id="statCoverage" style="color: var(--accent-emerald); font-weight: 700;">0.0%</span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span>POSSIBLE DETECTIONS:</span>
-            <span id="statSurvivors" style="color: #38bdf8; font-weight: 700;">0 / 10</span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span>ACTIVE FLEET COMPLEMENT:</span>
-            <span id="statActiveDrones" style="color: #fff; font-weight: 700;">10 / 10</span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span>MEAN TIME TO LOCATE (MTFT):</span>
-            <span id="statMtft" style="color: var(--accent-amber); font-weight: 700;">--</span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span>MESH PACKETS EXCHANGED:</span>
-            <span id="statPackets" style="color: #cbd5e1;">0</span>
-          </div>
-        </div>
-      </div>
-
-    </aside>
   </div>
 
   <!-- ======================================================== -->
-  <!-- VIEW 2: MISSION PLANNER (SEARCH BOUNDS, HAZARDS, SECTORS) -->
+  <!-- MAIN PRODUCTION DASHBOARD ROOT                           -->
   <!-- ======================================================== -->
-  <div class="view-page" id="viewPlanner">
-    <div class="page-header">
-      <div class="page-tag mono">MISSION CONFIGURATION &amp; PRE-FLIGHT DIRECTIVE</div>
-      <h1 class="page-title">Mission Planner &amp; Search Sector Dispatch</h1>
-      <p class="page-subtitle">
-        Configure operational bounding boxes, mark terrain and airspace hazards, and assign search sectors to available drones. All parameters sync directly to the airborne mesh.
-      </p>
-    </div>
+  <div id="dashboardRoot" style="display:none; flex-direction:column; height:100vh; width:100vw; overflow:hidden;">
 
-    <div class="planner-container">
-      <div class="planner-grid-top">
-        
-        <!-- Card 1: Search Area & Operational Geometry -->
-        <div class="console-card">
-          <div class="console-card-header">
-            <span class="console-card-title mono">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              OPERATIONAL SEARCH BOUNDARY &amp; MISSION PARAMETERS
-            </span>
-            <span class="badge-subtle mono">25.0 KM² SEARCH BOUNDARY</span>
+    <!-- ======================================================== -->
+    <!-- TOP CONSOLE NAVIGATION HEADER (SUPABASE STYLE)           -->
+    <!-- ======================================================== -->
+    <header class="console-header">
+      <div class="header-brand">
+        <div class="brand-logo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">
+            AEGIS SAR
+            <span class="badge-subtle mono">SWARM COMMAND v3.4</span>
+            <span class="badge-emerald mono">PGVECTOR AI LINKED</span>
           </div>
+          <div class="brand-subtitle mono">
+            AUTONOMOUS MULTI-AGENT DRONE SEARCH &amp; RESCUE COORDINATOR
+          </div>
+        </div>
+      </div>
 
-          <div class="planner-form-grid mono">
-            <div class="planner-field">
-              <label class="planner-field-label">MISSION IDENTIFIER</label>
-              <input type="text" id="plannerMissionName" class="planner-field-input" value="Operation Alpine Reach - Zermatt North Sector">
+      <!-- Navigation Tabs + AI Detection Link -->
+      <nav class="nav-tabs mono">
+        <button class="nav-tab active" data-view="operations" id="tabOperations">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+          OPERATIONS MAP
+        </button>
+        <button class="nav-tab" data-view="planner" id="tabPlanner">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          MISSION PLANNER
+        </button>
+        <button class="nav-tab" data-view="reports" id="tabReports">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          VICTIM REPORTS
+        </button>
+        <button class="nav-tab" data-view="droneteam" id="tabDroneTeam">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          RESCUE TEAM &amp; SENSORS
+        </button>
+        <button class="nav-tab" data-view="fleet" id="tabFleet">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 19 21 12 17 5 21 12 2"/></svg>
+          FLEET DIAGNOSTICS
+        </button>
+        <button class="nav-tab" data-view="logs" id="tabLogs">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          MISSION LOG
+        </button>
+        <a href="ai-detection.html" class="nav-tab" id="tabAiDetection" style="text-decoration: none; border-color: rgba(62, 207, 142, 0.35); color: var(--accent-emerald);">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+          AI DETECTION
+        </a>
+        <a href="rescue-command.html" class="nav-tab" id="tabRescueCommand" style="text-decoration: none; border-color: rgba(249, 115, 22, 0.45); color: #fb923c;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 19 21 12 17 5 21 12 2"/></svg>
+          RESCUE COMMAND
+        </a>
+      </nav>
+
+      <!-- Header Actions & Authenticated Rescuer Badge -->
+      <div class="header-actions">
+        <div class="operator-profile-btn mono" id="btnOperatorProfile" title="Authenticated Rescuer Session">
+          <div class="status-indicator-green"></div>
+          <span id="operatorCallsignText">RESCUER SESSION</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+
+        <button class="btn-console mono" id="btnToggleSound" title="Toggle Audio Alerts">
+          🔇 AUDIO: OFF
+        </button>
+
+        <button class="btn-console mono" id="btnHelpModal" title="System Architecture">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          DOCS
+        </button>
+
+        <button class="btn-console danger mono" id="btnLogout" title="Sign Out of Console">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          LOGOUT
+        </button>
+      </div>
+    </header>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 1: OPERATIONS MAP (REMOVED AIRBORNE FLEET & SPEED)  -->
+    <!-- ======================================================== -->
+    <div class="app-container" id="viewOperations">
+
+      <!-- Center GIS Map Viewport (Expanded full left-to-center width) -->
+      <main class="canvas-viewport">
+
+        <!-- Dynamic Fleet Reassignment Alert Banner -->
+        <div class="operations-alert-banner mono" id="opsReassignBanner" style="display: none;">
+          <div class="alert-content">
+            <span class="alert-icon">⚠️</span>
+            <span id="opsAlertBannerText">WARNING: Drone ALPHA-03 low battery (18%). Sector 3 requires reassignment.</span>
+          </div>
+          <button type="button" class="btn-console primary small" id="btnOpsQuickReassign">
+            ⚡ REASSIGN SECTOR TO STANDBY DRONE
+          </button>
+        </div>
+
+        <!-- Leaflet Geographic Map Container -->
+        <div id="mapContainer"></div>
+
+        <!-- High-Resolution Overlay Mission Canvas -->
+        <canvas id="missionCanvas"></canvas>
+
+        <!-- Map Zoom & 10KM Radius Controls -->
+        <div class="map-zoom-toolbar glass-panel mono">
+          <div class="zoom-btn-group">
+            <button type="button" class="zoom-tool-btn" id="btnZoomIn" title="Zoom In (+)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <button type="button" class="zoom-tool-btn" id="btnZoomOut" title="Zoom Out (-)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+          <div class="zoom-presets-group">
+            <button type="button" class="zoom-preset-btn active" id="btnZoom10km" title="Fit 10km Operational Search Radius">10 KM RADIUS</button>
+            <button type="button" class="zoom-preset-btn" id="btnZoom5km" title="Focus 5km Core Search Sector">5 KM SECTOR</button>
+            <button type="button" class="zoom-preset-btn" id="btnZoom2km" title="Focus 2km Tactical Drone Cluster">2 KM TACTICAL</button>
+          </div>
+          <div class="zoom-radius-indicator" id="mapRadiusIndicator" title="Visible Map Radius">
+            <span class="radius-dot"></span>
+            <span id="radiusLabelText">RADIUS: 10.0 KM (SEARCH BOUNDARY)</span>
+          </div>
+        </div>
+
+        <!-- Map Layer Switcher Toolbar -->
+        <div class="map-layer-toolbar glass-panel mono">
+          <button class="layer-btn active" id="layerSatellite" data-layer="satellite">🛰️ SATELLITE</button>
+          <button class="layer-btn" id="layerDark" data-layer="dark">🌌 DARK CANVAS</button>
+          <button class="layer-btn" id="layerTopo" data-layer="topo">⛰️ TOPOGRAPHY</button>
+        </div>
+
+        <!-- Canvas Overlay HUD -->
+        <div class="canvas-overlay-hud glass-panel mono">
+          <div id="hudSectorTitle">SEARCH SECTOR: 5.0 KM × 5.0 KM (25.0 KM²) • ZERMATT RIDGE</div>
+          <div id="hudGpsCoordinates" style="font-size: 0.68rem; color: var(--accent-emerald); margin-top: 2px;">
+            GPS: 45.9763° N, 7.7491° E • SWISS ALPS
+          </div>
+          <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 2px;">
+            RF MESH RANGE: &le; 1,200m • SENSOR FOV: 260m • AI: SAR-YOLOv9-Edge-v3
+          </div>
+        </div>
+
+        <!-- Plain-Language Readable Map Legend -->
+        <div class="canvas-legend glass-panel mono">
+          <div class="legend-header">OPERATIONS MAP LEGEND</div>
+          <div class="legend-item">
+            <div class="legend-symbol" style="border: 1.5px dashed #ffa116;"></div>
+            <span>10.0 km Operational Search Boundary</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-symbol" style="background: rgba(62, 207, 142, 0.35); border: 1px solid #3ecf8e;"></div>
+            <span>Cleared / Searched Territory</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-symbol" style="background: #3ecf8e; border-radius: 2px;"></div>
+            <span>Drone &amp; RF Mesh Communication Link</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-symbol" style="background: #f59e0b; border-radius: 50%; border: 1px solid #fff;"></div>
+            <span>Possible Detection (Pending Human Review)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-symbol" style="background: #10b981; border-radius: 50%; border: 1px solid #fff;"></div>
+            <span>Confirmed Subject (Rescue Dispatched)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-symbol" style="border: 1px dashed #f43f5e; background: rgba(244, 63, 94, 0.25);"></div>
+            <span>Hazard / Restricted Airspace</span>
+          </div>
+        </div>
+
+        <!-- Onboard Drone FLIR Thermal Gimbal PIP -->
+        <div class="thermal-pip-card glass-panel mono" id="thermalPipCard">
+          <div class="thermal-pip-header">
+            <span id="flirDroneLabel">ALPHA-01 // FLIR EO/IR CAMERA</span>
+            <div class="pip-controls">
+              <button class="pip-toggle-btn" id="btnMinFlir" title="Minimize / Expand">&minus;</button>
             </div>
-            <div class="planner-field">
-              <label class="planner-field-label">THEATER PRESET</label>
-              <select id="plannerPresetSelect" class="planner-field-input">
-                <option value="avalanche">Alpine Avalanche (Zermatt Ridge)</option>
-                <option value="flood">Coastal Tsunami (Fukushima Basin)</option>
-                <option value="earthquake">Urban Collapse (Kahramanmaraş)</option>
-                <option value="uniform">Wilderness Basin (Yellowstone)</option>
-              </select>
-            </div>
-            <div class="planner-field">
-              <label class="planner-field-label">CENTER LATITUDE</label>
-              <input type="text" id="plannerLat" class="planner-field-input" value="45.9763° N">
-            </div>
-            <div class="planner-field">
-              <label class="planner-field-label">CENTER LONGITUDE</label>
-              <input type="text" id="plannerLon" class="planner-field-input" value="7.7491° E">
-            </div>
-            <div class="planner-field">
-              <label class="planner-field-label">SEARCH BOUNDS (METERS)</label>
-              <input type="text" id="plannerBounds" class="planner-field-input" value="5,000m × 5,000m (25 km²)">
-            </div>
-            <div class="planner-field">
-              <label class="planner-field-label">OPERATIONAL RADIUS CEILING</label>
-              <input type="text" id="plannerRadiusLimit" class="planner-field-input" value="10.0 km Perimeter Boundary">
-            </div>
-            <div class="planner-field">
-              <label class="planner-field-label">PRIORITY SEARCH CORRIDOR</label>
-              <select id="plannerPriorityCorridor" class="planner-field-input">
-                <option value="debris">Couloir Debris Path (High Probability)</option>
-                <option value="riverbank">Riverbank / Valley Water Drainage</option>
-                <option value="ridge">North Avalanche Ridge Runout</option>
-                <option value="uniform">Uniform Dispersed Grid</option>
-              </select>
-            </div>
-            <div class="planner-field">
-              <label class="planner-field-label">FLIGHT ALTITUDE CEILING</label>
-              <input type="text" id="plannerAlt" class="planner-field-input" value="120m AGL (0.8 cm/px Resolution)">
+          </div>
+          <div class="thermal-feed-container">
+            <canvas id="flirCanvas" width="250" height="150"></canvas>
+            <div class="flir-hud-overlay">
+              <div style="display: flex; justify-content: space-between;">
+                <span>MODE: THERMAL IR</span>
+                <span id="flirAlt">ALT: 120m AGL</span>
+              </div>
+              <div class="flir-reticle"></div>
+              <div style="display: flex; justify-content: space-between;">
+                <span id="flirTargetStatus" style="color: #38bdf8;">SEARCHING ASSIGNED SECTOR...</span>
+                <span>FOV: 260m</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Card 2: Terrain & Airspace Hazard Management -->
+        <div id="tacticalToast" class="tactical-toast" style="display: none;"></div>
+      </main>
+
+      <!-- Right Controls & Compact Victim Quick-List Sidebar -->
+      <aside class="sidebar-controls">
+
+        <!-- Section 1: Search Algorithm & Disaster Scenario -->
+        <div class="control-section">
+          <div class="section-label mono">
+            <span>SEARCH ALGORITHM</span>
+          </div>
+          <div class="algo-tabs mono">
+            <div class="algo-tab active" data-algo="aegis">DECENTRALIZED SWARM</div>
+            <div class="algo-tab" data-algo="lawnmower">CONVENTIONAL SWEEP</div>
+          </div>
+
+          <div class="section-label mono" style="margin-top: 12px;">
+            <span>DISASTER SCENARIO (SIMULATION)</span>
+          </div>
+          <select id="scenarioSelect" class="console-select mono">
+            <option value="avalanche">Alpine Avalanche (Zermatt Ridge, Switzerland)</option>
+            <option value="flood">Coastal Tsunami Surge (Fukushima Plain, Japan)</option>
+            <option value="earthquake">Urban Structural Collapse (Kahramanmaraş Fault)</option>
+            <option value="uniform">Wilderness Dispersion (Yellowstone Basin, USA)</option>
+          </select>
+        </div>
+
+        <!-- Section 2: Simulation Execution (Simulation Speed Removed as Requested) -->
+        <div class="control-section">
+          <div class="section-label mono">
+            <span>SIMULATION EXECUTION</span>
+          </div>
+          <div class="btn-group">
+            <button class="btn-console primary mono" id="btnPlayPause">⏸ PAUSE</button>
+            <button class="btn-console mono" id="btnStep">⏭ STEP</button>
+            <button class="btn-console mono" id="btnReset">🔄 RESET</button>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <div class="slider-label mono">
+              <span>SEARCH COVERAGE PROGRESS</span>
+              <span id="statCoverageInline" style="color: var(--accent-emerald);">0.0%</span>
+            </div>
+            <div class="progress-bar-track">
+              <div id="coverageBarFill" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: NEW COMPACT VICTIM QUICK-LIST (Replaces Removed Controls) -->
+        <div class="control-section victim-quicklist-section">
+          <div class="section-label mono" style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="display:flex; align-items:center; gap:6px; color:#fff;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              VICTIMS &amp; PRIORITY STATUS
+            </span>
+            <span class="badge-emerald mono" id="victimQuickCountBadge">10 TARGETS</span>
+          </div>
+          <div class="victim-quick-hint mono">
+            Click any entry to center map camera on coordinates
+          </div>
+          <div class="victim-quick-list mono" id="victimQuickList">
+            <!-- Populated dynamically by app.js -->
+          </div>
+        </div>
+
+        <!-- Section 4: Redundancy & Resilience Testing -->
+        <div class="control-section">
+          <div class="stress-test-box">
+            <div class="stress-test-title mono">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              REDUNDANCY &amp; RESILIENCE TEST
+            </div>
+            <button class="btn-console danger mono" id="btnKill30" style="width: 100%; justify-content: center; margin-bottom: 8px;">
+              ⚡ SIMULATE 30% DRONE LOSS
+            </button>
+            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.7rem;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary);">
+                <input type="checkbox" id="chkRfJamming">
+                <span>RF Degradation (Drop to 350m)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary);">
+                <input type="checkbox" id="chkSensorNoise">
+                <span>Adverse Weather Thermal Noise (&plusmn;35%)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5: Live Mission Telemetry -->
+        <div class="control-section" style="border-bottom: none;">
+          <div class="section-label mono">
+            <span>LIVE MISSION TELEMETRY</span>
+          </div>
+          <div class="mono" style="font-size: 0.72rem; display: flex; flex-direction: column; gap: 5px; color: var(--text-secondary);">
+            <div style="display: flex; justify-content: space-between;">
+              <span>ELAPSED TIME:</span>
+              <span id="statSimTime" style="color: #fff; font-weight: 700;">0m 0s</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>AREA SEARCHED:</span>
+              <span id="statCoverage" style="color: var(--accent-emerald); font-weight: 700;">0.0%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>DETECTIONS:</span>
+              <span id="statSurvivors" style="color: #38bdf8; font-weight: 700;">0 / 10</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>ACTIVE SWARM:</span>
+              <span id="statActiveDrones" style="color: #fff; font-weight: 700;">10 / 10</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>MEAN TIME TO LOCATE:</span>
+              <span id="statMtft" style="color: var(--accent-amber); font-weight: 700;">--</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>MESH PACKETS:</span>
+              <span id="statPackets" style="color: #cbd5e1;">0</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 2: MISSION PLANNER                                  -->
+    <!-- ======================================================== -->
+    <div class="view-page" id="viewPlanner">
+      <div class="page-header">
+        <div class="page-tag mono">MISSION CONFIGURATION &amp; PRE-FLIGHT DIRECTIVE</div>
+        <h1 class="page-title">Mission Planner &amp; Search Sector Dispatch</h1>
+        <p class="page-subtitle">
+          Configure operational bounding boxes, mark terrain and airspace hazards, and assign search sectors to available drones. All parameters sync directly to the airborne mesh.
+        </p>
+      </div>
+
+      <div class="planner-container">
+        <div class="planner-grid-top">
+          <!-- Card 1: Search Area & Operational Geometry -->
+          <div class="console-card">
+            <div class="console-card-header">
+              <span class="console-card-title mono">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                OPERATIONAL SEARCH BOUNDARY &amp; MISSION PARAMETERS
+              </span>
+              <span class="badge-subtle mono">25.0 KM² SEARCH BOUNDARY</span>
+            </div>
+
+            <div class="planner-form-grid mono">
+              <div class="planner-field">
+                <label class="planner-field-label">MISSION IDENTIFIER</label>
+                <input type="text" id="plannerMissionName" class="planner-field-input" value="Operation Alpine Reach - Zermatt North Sector">
+              </div>
+              <div class="planner-field">
+                <label class="planner-field-label">THEATER PRESET</label>
+                <select id="plannerPresetSelect" class="planner-field-input">
+                  <option value="avalanche">Alpine Avalanche (Zermatt Ridge)</option>
+                  <option value="flood">Coastal Tsunami (Fukushima Basin)</option>
+                  <option value="earthquake">Urban Collapse (Kahramanmaraş)</option>
+                  <option value="uniform">Wilderness Basin (Yellowstone)</option>
+                </select>
+              </div>
+              <div class="planner-field">
+                <label class="planner-field-label">CENTER LATITUDE</label>
+                <input type="text" id="plannerLat" class="planner-field-input" value="45.9763° N">
+              </div>
+              <div class="planner-field">
+                <label class="planner-field-label">CENTER LONGITUDE</label>
+                <input type="text" id="plannerLon" class="planner-field-input" value="7.7491° E">
+              </div>
+              <div class="planner-field">
+                <label class="planner-field-label">SEARCH BOUNDS (METERS)</label>
+                <input type="text" id="plannerBounds" class="planner-field-input" value="5,000m × 5,000m (25 km²)">
+              </div>
+              <div class="planner-field">
+                <label class="planner-field-label">OPERATIONAL RADIUS CEILING</label>
+                <input type="text" id="plannerRadiusLimit" class="planner-field-input" value="10.0 km Perimeter Boundary">
+              </div>
+              <div class="planner-field">
+                <label class="planner-field-label">PRIORITY SEARCH CORRIDOR</label>
+                <select id="plannerPriorityCorridor" class="planner-field-input">
+                  <option value="debris">Couloir Debris Path (High Probability)</option>
+                  <option value="riverbank">Riverbank / Valley Water Drainage</option>
+                  <option value="ridge">North Avalanche Ridge Runout</option>
+                  <option value="uniform">Uniform Dispersed Grid</option>
+                </select>
+              </div>
+              <div class="planner-field">
+                <label class="planner-field-label">FLIGHT ALTITUDE CEILING</label>
+                <input type="text" id="plannerAlt" class="planner-field-input" value="120m AGL (0.8 cm/px Resolution)">
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Terrain & Airspace Hazard Management -->
+          <div class="console-card">
+            <div class="console-card-header">
+              <span class="console-card-title mono">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                AIRSPACE &amp; TERRAIN HAZARD REGISTRY
+              </span>
+              <span class="badge-subtle mono" id="plannerHazardCountBadge">4 ACTIVE</span>
+            </div>
+
+            <p style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 10px;">
+              Drones automatically calculate repulsive potential fields around designated hazards to avoid collisions and RF dropouts.
+            </p>
+
+            <table class="data-table mono">
+              <thead>
+                <tr>
+                  <th>Hazard Description</th>
+                  <th>Type</th>
+                  <th>Severity</th>
+                  <th>Exclusion Radius</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="plannerHazardsTableBody"></tbody>
+            </table>
+
+            <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-subtle); display: flex; gap: 8px;">
+              <input type="text" id="newHazardName" class="planner-field-input mono" placeholder="New Hazard Name (e.g. Ridge Wind Shear)" style="flex: 2;">
+              <select id="newHazardType" class="planner-field-input mono" style="flex: 1;">
+                <option value="Avalanche">Avalanche Chute</option>
+                <option value="Power Lines">Power Lines</option>
+                <option value="Turbulence">Turbulence</option>
+                <option value="RF Jamming">RF Shadow</option>
+              </select>
+              <button class="btn-console primary mono" id="btnAddHazardSubmit" style="padding: 6px 12px; font-size: 0.72rem;">
+                + MARK HAZARD
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Swarm Sector Allocation & Drone Assignment Matrix -->
         <div class="console-card">
           <div class="console-card-header">
             <span class="console-card-title mono">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              AIRSPACE &amp; TERRAIN HAZARD REGISTRY
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              AVAILABLE DRONES &amp; SECTOR ASSIGNMENT MATRIX
             </span>
-            <span class="badge-subtle mono" id="plannerHazardCountBadge">4 ACTIVE</span>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-console mono" id="btnAutoBalanceSectors" style="font-size: 0.72rem; padding: 4px 10px;">
+                🔄 AUTO-BALANCE VORONOI SECTORS
+              </button>
+            </div>
           </div>
-
-          <p style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 10px;">
-            Drones automatically calculate repulsive potential fields around designated hazards to avoid collisions and RF dropouts.
-          </p>
 
           <table class="data-table mono">
             <thead>
               <tr>
-                <th>Hazard Description</th>
-                <th>Type</th>
-                <th>Severity</th>
-                <th>Exclusion Radius</th>
-                <th>Status</th>
+                <th>UAV Call sign</th>
+                <th>Battery %</th>
+                <th>Assigned Search Sector</th>
+                <th>Payload Role</th>
+                <th>RF Signal</th>
+                <th>Operational State</th>
               </tr>
             </thead>
-            <tbody id="plannerHazardsTableBody">
-              <!-- Injected dynamically by app.js -->
-            </tbody>
+            <tbody id="plannerSectorTableBody"></tbody>
           </table>
+        </div>
 
-          <!-- Inline Add Hazard Trigger -->
-          <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-subtle); display: flex; gap: 8px;">
-            <input type="text" id="newHazardName" class="planner-field-input mono" placeholder="New Hazard Name (e.g. Ridge Wind Shear)" style="flex: 2;">
-            <select id="newHazardType" class="planner-field-input mono" style="flex: 1;">
-              <option value="Avalanche">Avalanche Chute</option>
-              <option value="Power Lines">Power Lines</option>
-              <option value="Turbulence">Turbulence</option>
-              <option value="RF Jamming">RF Shadow</option>
-            </select>
-            <button class="btn-console primary mono" id="btnAddHazardSubmit" style="padding: 6px 12px; font-size: 0.72rem;">
-              + MARK HAZARD
+        <!-- Card 4: Proposed Plan Review & Start Trigger -->
+        <div class="console-card plan-review-card">
+          <div class="console-card-header">
+            <span class="console-card-title mono" style="color: var(--accent-emerald);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              MISSION PLAN REVIEW &amp; AUTHORIZATION
+            </span>
+            <span class="badge-emerald mono">READY FOR DISPATCH</span>
+          </div>
+
+          <div class="plan-review-body mono">
+            <div class="plan-review-stat">
+              <span class="stat-lbl">MISSION:</span>
+              <span class="stat-val" id="reviewMissionName">Operation Alpine Reach</span>
+            </div>
+            <div class="plan-review-stat">
+              <span class="stat-lbl">SEARCH AREA:</span>
+              <span class="stat-val">25.0 km² (5km × 5km) within 10km perimeter</span>
+            </div>
+            <div class="plan-review-stat">
+              <span class="stat-lbl">AVAILABLE FLEET:</span>
+              <span class="stat-val" id="reviewDroneCount">10 / 10 Hexa-Rotor UAVs</span>
+            </div>
+            <div class="plan-review-stat">
+              <span class="stat-lbl">HAZARD ZONES:</span>
+              <span class="stat-val" id="reviewHazardCount">4 Active Exclusion Corridors</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px;">
+            <button class="btn-console primary large mono" id="btnApplyAndStartPlan">
+              🚀 APPLY &amp; START PROPOSED SEARCH PLAN
             </button>
           </div>
         </div>
+      </div>
+    </div>
 
+    <!-- ======================================================== -->
+    <!-- VIEW 3: VICTIM REPORTS (THERMAL IR + AI DATABASE SYNC)   -->
+    <!-- ======================================================== -->
+    <div class="view-page" id="viewReports">
+      <div class="page-header">
+        <div class="page-tag mono">THERMAL IR IMAGERY &amp; TRAINED AI INFERENCE ENGINE</div>
+        <h1 class="page-title">Victim Reports, Thermal Signatures &amp; AI Classification</h1>
+        <p class="page-subtitle">
+          High-contrast LWIR thermal snapshots rendered against cold alpine terrain with YOLOv8/v9 edge inference confidence, target classification, estimated biometrics, and PostgreSQL / Supabase <code>pgvector</code> database synchronization.
+        </p>
       </div>
 
-      <!-- Card 3: Swarm Sector Allocation & Drone Assignment Matrix -->
-      <div class="console-card">
-        <div class="console-card-header">
-          <span class="console-card-title mono">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            AVAILABLE DRONES &amp; SECTOR ASSIGNMENT MATRIX
+      <!-- SECTION 5: TRAINED AI MODEL DATABASE SYNC & FUTURE SLOTS -->
+      <div class="console-card ai-sync-banner-card">
+        <div class="console-card-header" style="margin-bottom:10px;">
+          <span class="console-card-title mono" style="color: var(--accent-emerald);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            TRAINED AI MODEL DATABASE SYNC // SUPABASE PGVECTOR PIPELINE
           </span>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn-console mono" id="btnAutoBalanceSectors" style="font-size: 0.72rem; padding: 4px 10px;">
-              🔄 AUTO-BALANCE VORONOI SECTORS
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="badge-emerald mono">● LIVE VECTOR DB LINKED</span>
+            <button type="button" class="btn-console small mono" id="btnToggleSchemaStub">
+              { } VIEW PGVECTOR SCHEMA &amp; API STUBS
             </button>
           </div>
         </div>
 
+        <!-- Required UI Indicators -->
+        <div class="ai-db-indicators-grid mono">
+          <div class="ai-indicator-box">
+            <span class="ai-ind-label">AI MODEL</span>
+            <span class="ai-ind-value" style="color:#3ecf8e;">SAR-YOLOv9-Edge-v3</span>
+            <span class="ai-ind-sub">Secondary: YOLOv8-Thermal-SAR v2.4 (FP16 TensorRT)</span>
+          </div>
+          <div class="ai-indicator-box">
+            <span class="ai-ind-label">DATABASE</span>
+            <span class="ai-ind-value" style="color:#38bdf8;">Supabase pgvector Connected</span>
+            <span class="ai-ind-sub">PostgreSQL 16 • Cosine Similarity HNSW Index</span>
+          </div>
+          <div class="ai-indicator-box">
+            <span class="ai-ind-label">ACTIVE EMBEDDINGS</span>
+            <span class="ai-ind-value" style="color:#f59e0b;">10,240 thermal feature signatures</span>
+            <span class="ai-ind-sub">512-dim normalized LWIR hypothermia &amp; burial vectors</span>
+          </div>
+        </div>
+
+        <!-- Open Slots for Future Live Stream Camera Feeds, Vector Search & Inference Logging -->
+        <div class="ai-future-slots-grid mono">
+          <div class="ai-open-slot">
+            <div class="slot-header">
+              <span class="slot-tag">OPEN SLOT 01 // RTSP / WEBRTC</span>
+              <span class="badge-subtle">STANDBY</span>
+            </div>
+            <div class="slot-title">Live Stream Camera Feed Slot</div>
+            <div class="slot-desc">Reserved mount for multi-drone WebRTC 60fps thermal/optical gimbal streams (`wss://stream.aegis-sar.internal/flir-mux`).</div>
+          </div>
+
+          <div class="ai-open-slot">
+            <div class="slot-header">
+              <span class="slot-tag">OPEN SLOT 02 // PGVECTOR RPC</span>
+              <span class="badge-subtle">READY</span>
+            </div>
+            <div class="slot-title">Custom Vector-Search Query Slot</div>
+            <div class="slot-desc">
+              <input type="text" id="vectorQueryStubInput" class="planner-field-input mono" placeholder="match_thermal_signatures(threshold: 0.88, burial_depth &lt; 2.5m)" style="width:100%; font-size:0.66rem; margin-top:4px;">
+            </div>
+          </div>
+
+          <div class="ai-open-slot">
+            <div class="slot-header">
+              <span class="slot-tag">OPEN SLOT 03 // REALTIME CHANNEL</span>
+              <span class="badge-emerald">STREAMING</span>
+            </div>
+            <div class="slot-title">Real-Time Inference Logging Stream</div>
+            <div class="slot-desc" id="liveInferenceStreamStub">
+              [SYNC] `public:victim_detections` &rarr; 512-d embedding committed (cosine dist: 0.041)
+            </div>
+          </div>
+        </div>
+
+        <!-- Collapsible SQL & JS State Stubs -->
+        <div id="aiSchemaStubContainer" class="ai-schema-stub mono" style="display:none; margin-top:12px;">
+          <div class="ai-schema-header">// SUPABASE PGVECTOR SCHEMA &amp; CLIENT CONNECTION STUB (READY FOR PRODUCTION)</div>
+          <pre class="ai-schema-code">CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE public.sar_victim_detections (
+  victim_id            TEXT PRIMARY KEY,
+  mission_id           UUID NOT NULL,
+  detected_by_node     TEXT NOT NULL,               -- e.g. 'ALPHA-04 // FLIR IR'
+  ai_model_version     TEXT DEFAULT 'SAR-YOLOv9-Edge-v3',
+  confidence_score     NUMERIC(5,2) NOT NULL,       -- e.g. 98.60
+  target_classification TEXT NOT NULL,              -- e.g. 'Deep Snow Burial / Hypothermia Risk'
+  estimated_bpm        INTEGER,
+  estimated_body_temp  NUMERIC(4,1),
+  gps_coordinates      GEOGRAPHY(POINT, 4326),
+  thermal_embedding    vector(512),                 -- 10,240 trained reference signatures
+  verified_by_rescuer  TEXT,                        -- Rescuer Government ID
+  created_at           TIMESTAMPTZ DEFAULT NOW()
+);</pre>
+        </div>
+      </div>
+
+      <!-- Mandatory Ethical SAR Protocol Banner -->
+      <div class="protocol-warning-banner mono">
+        <div class="protocol-icon">🛡️</div>
+        <div class="protocol-text">
+          <strong>STRICT SEARCH &amp; RESCUE PROTOCOL:</strong> Automated AI detections (`YOLOv8-Thermal-SAR v2.4` / `SAR-YOLOv9-Edge-v3`) represent probabilistic hypotheses. A human rescuer must inspect the thermal IR signature and explicitly confirm each casualty before Medevac dispatch.
+        </div>
+      </div>
+
+      <!-- Reports KPI Bar -->
+      <div class="kpi-row-grid mono">
+        <div class="kpi-card">
+          <span class="kpi-lbl">TOTAL TARGETS MONITORED</span>
+          <span class="kpi-val" id="repKpiTotal" style="color: #fff;">10</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">AI THERMAL DETECTIONS</span>
+          <span class="kpi-val" id="repKpiLocated" style="color: #38bdf8;">0 / 10</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">CONFIRMED (DISPATCHED)</span>
+          <span class="kpi-val" id="repKpiDispatched" style="color: var(--accent-emerald);">0 RESCUES</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">PENDING OPERATOR REVIEW</span>
+          <span class="kpi-val" id="repKpiPending" style="color: var(--accent-amber);">10 TARGETS</span>
+        </div>
+      </div>
+
+      <!-- Filter Pills -->
+      <div class="filter-pill-bar mono">
+        <button class="filter-pill active" data-filter="all">ALL TARGETS (10)</button>
+        <button class="filter-pill" data-filter="pending">PENDING OPERATOR REVIEW</button>
+        <button class="filter-pill" data-filter="verified">CONFIRMED (DISPATCHED)</button>
+        <button class="filter-pill" data-filter="false-alarm">DISMISSED FALSE ALARMS</button>
+        <button class="filter-pill" data-filter="critical">CRITICAL PRIORITY</button>
+        <button class="filter-pill" data-filter="urgent">URGENT PRIORITY</button>
+        <button class="filter-pill" data-filter="stable">STABLE</button>
+      </div>
+
+      <!-- Dynamic Victim Report Cards Grid with Cold-Terrain Thermal IR Snapshots -->
+      <div class="victim-reports-grid" id="victimReportsList"></div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 4: DRONE RESCUE TEAM & SENSOR SUITE (NEW TAB)       -->
+    <!-- ======================================================== -->
+    <div class="view-page" id="viewDroneTeam">
+      <div class="page-header">
+        <div class="page-tag mono">FIELD OPERATIONS &amp; MULTI-MODAL SENSOR PAYLOADS</div>
+        <h1 class="page-title">Drone Rescue Team &amp; Survivor Detection Sensors</h1>
+        <p class="page-subtitle">
+          Visual reference of the AEGIS SAR field rescue team operating the autonomous hexacopter swarm and the multi-spectral sensor array used to pinpoint buried or stranded survivors in extreme environments.
+        </p>
+      </div>
+
+      <!-- Sample Image / Composite Visual of Drone Rescue Team & Sensors -->
+      <div class="console-card drone-team-showcase-card">
+        <div class="console-card-header">
+          <span class="console-card-title mono">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            FIELD DEPLOYMENT: SAR DRONE RESCUE TEAM &amp; ACTIVE SENSOR CONE ARCHITECTURE
+          </span>
+          <span class="badge-emerald mono">SAR-X4 TACTICAL SWARM UNIT</span>
+        </div>
+
+        <div class="drone-team-visual-wrapper">
+          <!-- High-Detail Annotated SVG Illustration of Rescue Team + Drone + Sensors + Buried Survivor -->
+          <svg viewBox="0 0 1100 460" xmlns="http://www.w3.org/2000/svg" class="drone-team-svg">
+            <defs>
+              <linearGradient id="nightAlpineSky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#070b14"/>
+                <stop offset="60%" stop-color="#0f172a"/>
+                <stop offset="100%" stop-color="#152238"/>
+              </linearGradient>
+              <linearGradient id="glacierTerrain" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#1e293b"/>
+                <stop offset="100%" stop-color="#090d16"/>
+              </linearGradient>
+              <linearGradient id="flirConeGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.45"/>
+                <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.22"/>
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0.05"/>
+              </linearGradient>
+              <linearGradient id="gprConeGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.4"/>
+                <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.03"/>
+              </linearGradient>
+              <radialGradient id="survivorThermalGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+                <stop offset="28%" stop-color="#fde047" stop-opacity="0.95"/>
+                <stop offset="60%" stop-color="#f97316" stop-opacity="0.8"/>
+                <stop offset="85%" stop-color="#f43f5e" stop-opacity="0.45"/>
+                <stop offset="100%" stop-color="#f43f5e" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+
+            <!-- Sky Background -->
+            <rect width="1100" height="460" fill="url(#nightAlpineSky)"/>
+
+            <!-- Subtle Tactical HUD Grid -->
+            <g stroke="rgba(62,207,142,0.06)" stroke-width="1">
+              <line x1="0" y1="90" x2="1100" y2="90"/><line x1="0" y1="180" x2="1100" y2="180"/>
+              <line x1="0" y1="270" x2="1100" y2="270"/><line x1="0" y1="360" x2="1100" y2="360"/>
+              <line x1="220" y1="0" x2="220" y2="460"/><line x1="440" y1="0" x2="440" y2="460"/>
+              <line x1="660" y1="0" x2="660" y2="460"/><line x1="880" y1="0" x2="880" y2="460"/>
+            </g>
+
+            <!-- Distant Alpine Mountains -->
+            <polygon points="0,330 140,190 290,310 460,165 640,305 830,175 1010,295 1100,240 1100,460 0,460" fill="#111c2d" stroke="#1e293b" stroke-width="1"/>
+            <!-- Snow Ridge Foreground -->
+            <path d="M0 335 Q180 305 350 330 T720 325 T1100 340 L1100 460 L0 460 Z" fill="url(#glacierTerrain)" stroke="#334155" stroke-width="1.5"/>
+
+            <!-- ================= LEFT SIDE: GROUND RESCUE TEAM & COMMAND RIG ================= -->
+            <g transform="translate(55, 255)">
+              <!-- Mobile Ground Control Station Tripod Antenna -->
+              <line x1="125" y1="65" x2="105" y2="105" stroke="#94a3b8" stroke-width="2.5"/>
+              <line x1="125" y1="65" x2="145" y2="105" stroke="#94a3b8" stroke-width="2.5"/>
+              <line x1="125" y1="65" x2="125" y2="108" stroke="#94a3b8" stroke-width="2.5"/>
+              <line x1="125" y1="20" x2="125" y2="65" stroke="#3ecf8e" stroke-width="3"/>
+              <!-- Parabolic Mesh Dish -->
+              <path d="M112 12 Q125 28 138 12" fill="none" stroke="#3ecf8e" stroke-width="2.5"/>
+              <circle cx="125" cy="14" r="3.5" fill="#3ecf8e"/>
+              <!-- RF Uplink Waves -->
+              <path d="M140 8 Q158 -5 170 -20" fill="none" stroke="#3ecf8e" stroke-width="1.5" stroke-dasharray="4,4"/>
+              <path d="M148 16 Q172 2 190 -14" fill="none" stroke="#3ecf8e" stroke-width="1.2" stroke-dasharray="4,4"/>
+
+              <!-- Rescuer 1: Swarm Operator with Dual-Screen Rugged Console -->
+              <g transform="translate(15, 35)">
+                <!-- Jacket & Helmet -->
+                <rect x="12" y="24" width="26" height="36" rx="5" fill="#e11d48" stroke="#fda4af" stroke-width="1"/>
+                <!-- High-Vis Reflective Stripes -->
+                <line x1="12" y1="36" x2="38" y2="36" stroke="#fde047" stroke-width="3"/>
+                <line x1="12" y1="48" x2="38" y2="48" stroke="#fde047" stroke-width="2.5"/>
+                <!-- Legs -->
+                <line x1="18" y1="60" x2="16" y2="85" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+                <line x1="32" y1="60" x2="34" y2="85" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+                <!-- SAR Helmet + Headlamp -->
+                <circle cx="25" cy="14" r="9" fill="#f43f5e" stroke="#fff" stroke-width="1.2"/>
+                <rect x="28" y="9" width="6" height="4" rx="1" fill="#38bdf8"/>
+                <!-- Rugged Field Controller Tablet in Hands -->
+                <rect x="34" y="28" width="24" height="16" rx="2" fill="#0f172a" stroke="#3ecf8e" stroke-width="1.8"/>
+                <line x1="38" y1="33" x2="54" y2="33" stroke="#3ecf8e" stroke-width="1.5"/>
+                <line x1="38" y1="38" x2="50" y2="38" stroke="#f59e0b" stroke-width="1.5"/>
+              </g>
+
+              <!-- Rescuer 2: Sensor & Telemetry Specialist -->
+              <g transform="translate(68, 40)">
+                <rect x="10" y="22" width="24" height="34" rx="5" fill="#e11d48" stroke="#fda4af" stroke-width="1"/>
+                <line x1="10" y1="34" x2="34" y2="34" stroke="#fde047" stroke-width="3"/>
+                <line x1="16" y1="56" x2="15" y2="80" stroke="#1e293b" stroke-width="5.5" stroke-linecap="round"/>
+                <line x1="28" y1="56" x2="30" y2="80" stroke="#1e293b" stroke-width="5.5" stroke-linecap="round"/>
+                <circle cx="22" cy="12" r="8.5" fill="#f59e0b" stroke="#fff" stroke-width="1.2"/>
+                <!-- Binoculars / Laser Rangefinder raised -->
+                <rect x="26" y="10" width="14" height="6" rx="2" fill="#38bdf8"/>
+              </g>
+
+              <!-- Team Callout Box -->
+              <rect x="-15" y="-32" width="215" height="38" rx="4" fill="rgba(18,18,18,0.9)" stroke="#3ecf8e" stroke-width="1.2"/>
+              <text x="-5" y="-16" fill="#3ecf8e" font-family="monospace" font-size="10" font-weight="bold">NDRF / ALPINE SAR DRONE TEAM</text>
+              <text x="-5" y="-3" fill="#cbd5e1" font-family="monospace" font-size="9">915 MHz Mesh Uplink • Portable GCS</text>
+            </g>
+
+            <!-- ================= CENTER-RIGHT: SAR-X4 DRONE & MULTI-SENSOR PAYLOAD ================= -->
+            <!-- Sensor Cones Projecting Down to Buried Survivor -->
+            <polygon points="650,145 505,385 795,385" fill="url(#flirConeGrad)"/>
+            <polygon points="650,145 565,385 735,385" fill="url(#gprConeGrad)"/>
+
+            <!-- Radar Scan Rings inside Cone -->
+            <ellipse cx="650" cy="240" rx="55" ry="12" fill="none" stroke="#38bdf8" stroke-width="1" stroke-dasharray="5,4"/>
+            <ellipse cx="650" cy="295" rx="90" ry="18" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="6,4"/>
+            <ellipse cx="650" cy="350" rx="125" ry="24" fill="none" stroke="#f43f5e" stroke-width="1.2" stroke-dasharray="6,4"/>
+
+            <!-- Primary SAR-X4 Heavy-Lift Hexacopter Drone -->
+            <g transform="translate(650, 115)">
+              <!-- Carbon Fiber Arms -->
+              <line x1="-95" y1="-18" x2="95" y2="-18" stroke="#64748b" stroke-width="4.5"/>
+              <line x1="-75" y1="8" x2="75" y2="8" stroke="#475569" stroke-width="3.5"/>
+              <!-- Rotor Pods -->
+              <rect x="-102" y="-26" width="14" height="12" rx="2" fill="#1e293b" stroke="#3ecf8e" stroke-width="1.5"/>
+              <rect x="88" y="-26" width="14" height="12" rx="2" fill="#1e293b" stroke="#3ecf8e" stroke-width="1.5"/>
+              <rect x="-80" y="2" width="12" height="10" rx="2" fill="#1e293b" stroke="#3ecf8e" stroke-width="1.2"/>
+              <rect x="68" y="2" width="12" height="10" rx="2" fill="#1e293b" stroke="#3ecf8e" stroke-width="1.2"/>
+              <!-- Spinning Rotor Blades -->
+              <ellipse cx="-95" cy="-29" rx="34" ry="4" fill="#3ecf8e" opacity="0.45"/>
+              <ellipse cx="95" cy="-29" rx="34" ry="4" fill="#3ecf8e" opacity="0.45"/>
+              <ellipse cx="-74" cy="-1" rx="26" ry="3" fill="#3ecf8e" opacity="0.35"/>
+              <ellipse cx="74" cy="-1" rx="26" ry="3" fill="#3ecf8e" opacity="0.35"/>
+
+              <!-- Central Avionics & Edge AI Fuselage -->
+              <rect x="-42" y="-24" width="84" height="32" rx="7" fill="#0f172a" stroke="#3ecf8e" stroke-width="2"/>
+              <text x="0" y="-6" text-anchor="middle" fill="#ffffff" font-family="monospace" font-size="10" font-weight="bold">ALPHA-04 // SAR-X4</text>
+
+              <!-- Sensor 1: FLIR Thermal IR Gimbal Turret (Center Bottom) -->
+              <circle cx="-16" cy="22" r="12" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+              <circle cx="-16" cy="22" r="5" fill="#f43f5e"/>
+
+              <!-- Sensor 2: 3D LiDAR + Ultra-Wideband GPR Radar Array (Right Bottom) -->
+              <rect x="4" y="12" width="28" height="16" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+              <circle cx="18" cy="20" r="4" fill="#38bdf8"/>
+
+              <!-- Sensor 3: 457 kHz Avalanche Beacon & Acoustic Array (Left Landing Gear) -->
+              <line x1="-38" y1="8" x2="-48" y2="38" stroke="#94a3b8" stroke-width="2.5"/>
+              <line x1="38" y1="8" x2="48" y2="38" stroke="#94a3b8" stroke-width="2.5"/>
+              <circle cx="-48" cy="38" r="5" fill="#10b981" stroke="#fff" stroke-width="1"/>
+              <circle cx="48" cy="38" r="5" fill="#a855f7" stroke="#fff" stroke-width="1"/>
+            </g>
+
+            <!-- Annotated Callout Lines for Onboard Sensors -->
+            <!-- Callout 1: FLIR Boson LWIR -->
+            <line x1="634" y1="137" x2="465" y2="115" stroke="#f59e0b" stroke-width="1.5"/>
+            <rect x="260" y="92" width="205" height="42" rx="4" fill="rgba(18,18,18,0.92)" stroke="#f59e0b" stroke-width="1.2"/>
+            <text x="270" y="109" fill="#f59e0b" font-family="monospace" font-size="10" font-weight="bold">1. FLIR BOSON 640 LWIR CAMERA</text>
+            <text x="270" y="124" fill="#cbd5e1" font-family="monospace" font-size="9">Detects 0.05°C body heat delta in snow</text>
+
+            <!-- Callout 2: UWB Ground Penetrating Radar & LiDAR -->
+            <line x1="675" y1="135" x2="830" y2="98" stroke="#38bdf8" stroke-width="1.5"/>
+            <rect x="830" y="76" width="245" height="42" rx="4" fill="rgba(18,18,18,0.92)" stroke="#38bdf8" stroke-width="1.2"/>
+            <text x="840" y="93" fill="#38bdf8" font-family="monospace" font-size="10" font-weight="bold">2. UWB BIO-RADAR &amp; 3D LiDAR</text>
+            <text x="840" y="108" fill="#cbd5e1" font-family="monospace" font-size="9">Penetrates 3m snow for chest respiration</text>
+
+            <!-- Callout 3: 457kHz Transceiver & Acoustic Probe -->
+            <line x1="698" y1="153" x2="830" y2="155" stroke="#a855f7" stroke-width="1.5"/>
+            <rect x="830" y="134" width="245" height="42" rx="4" fill="rgba(18,18,18,0.92)" stroke="#a855f7" stroke-width="1.2"/>
+            <text x="840" y="151" fill="#c084fc" font-family="monospace" font-size="10" font-weight="bold">3. 457kHz BEACON &amp; ACOUSTIC MIC</text>
+            <text x="840" y="166" fill="#cbd5e1" font-family="monospace" font-size="9">Locks onto avalanche beacons &amp; voice cries</text>
+
+            <!-- Callout 4: Onboard Edge AI Tensor Core -->
+            <line x1="608" y1="100" x2="465" y2="55" stroke="#3ecf8e" stroke-width="1.5"/>
+            <rect x="260" y="34" width="205" height="42" rx="4" fill="rgba(18,18,18,0.92)" stroke="#3ecf8e" stroke-width="1.2"/>
+            <text x="270" y="51" fill="#3ecf8e" font-family="monospace" font-size="10" font-weight="bold">4. JETSON ORIN EDGE AI MODULE</text>
+            <text x="270" y="66" fill="#cbd5e1" font-family="monospace" font-size="9">Runs SAR-YOLOv9-Edge-v3 @ 60 FPS</text>
+
+            <!-- ================= SURVIVOR THERMAL SIGNATURE ON SNOW TERRAIN ================= -->
+            <g transform="translate(650, 382)">
+              <!-- Radiant Heat Glow -->
+              <ellipse cx="0" cy="0" rx="52" ry="24" fill="url(#survivorThermalGlow)"/>
+              <!-- Human Silhouette in Thermal White/Orange -->
+              <circle cx="-12" cy="-2" r="5.5" fill="#ffffff"/>
+              <path d="M-5 -4 L16 2 L28 10 M-2 -2 L-10 10 M8 0 L18 -8" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+              <!-- AI Bounding Box -->
+              <rect x="-42" y="-22" width="88" height="44" fill="none" stroke="#f43f5e" stroke-width="1.8" stroke-dasharray="4,2"/>
+              <rect x="-42" y="-38" width="235" height="16" fill="#f43f5e"/>
+              <text x="-36" y="-27" fill="#ffffff" font-family="monospace" font-size="9.5" font-weight="bold">TARGET: SURVIVOR // 98.6% CONF // 64 BPM</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Detailed 4-Sensor Breakdown Grid -->
+      <div class="sensor-cards-grid">
+        <div class="sensor-card">
+          <div class="sensor-card-header">
+            <div class="sensor-icon" style="background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.35);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+            </div>
+            <div>
+              <div class="sensor-name">Radiometric FLIR Thermal IR</div>
+              <div class="sensor-model mono">FLIR Boson 640 // LWIR (7.5–14 μm)</div>
+            </div>
+            <span class="sensor-status-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b;border-color:rgba(245,158,11,0.4);">PRIMARY SENSOR</span>
+          </div>
+          <p class="sensor-desc">Captures pixel-by-pixel surface temperature deltas against sub-zero snow and glacial terrain. Identifies exposed limbs, air vents from snow burials, and body heat signatures day or night through smoke and fog.</p>
+          <div class="sensor-specs mono">
+            <div class="sensor-spec-item"><span>THERMAL SENSITIVITY</span><span>&lt; 40 mK NETD</span></div>
+            <div class="sensor-spec-item"><span>RESOLUTION</span><span>640 × 512 Radiometric</span></div>
+            <div class="sensor-spec-item"><span>AI CLASSIFIER</span><span>YOLOv8-Thermal-SAR v2.4</span></div>
+          </div>
+        </div>
+
+        <div class="sensor-card">
+          <div class="sensor-card-header">
+            <div class="sensor-icon" style="background: rgba(56,189,248,0.12); border-color: rgba(56,189,248,0.35);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+            </div>
+            <div>
+              <div class="sensor-name">UWB Bio-Radar &amp; 3D LiDAR</div>
+              <div class="sensor-model mono">S-Band Impulse Radar + 16-Ch LiDAR</div>
+            </div>
+            <span class="sensor-status-badge" style="background:rgba(56,189,248,0.15);color:#38bdf8;border-color:rgba(56,189,248,0.4);">DEEP BURIAL</span>
+          </div>
+          <p class="sensor-desc">Ultra-Wideband micro-Doppler radar penetrates up to 3.5 meters of dense avalanche snow or structural rubble to measure sub-millimeter chest wall movement (respiration and cardiac BPM) of completely buried victims.</p>
+          <div class="sensor-specs mono">
+            <div class="sensor-spec-item"><span>PENETRATION DEPTH</span><span>Up to 3.5m Snow / Debris</span></div>
+            <div class="sensor-spec-item"><span>BIOMETRIC OUTPUT</span><span>Heart Rate (BPM) &amp; Breathing</span></div>
+            <div class="sensor-spec-item"><span>TERRAIN MAPPING</span><span>300,000 pts/sec 3D Cloud</span></div>
+          </div>
+        </div>
+
+        <div class="sensor-card">
+          <div class="sensor-card-header">
+            <div class="sensor-icon" style="background: rgba(244,63,94,0.12); border-color: rgba(244,63,94,0.35);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
+            </div>
+            <div>
+              <div class="sensor-name">Acoustic &amp; Cellular IMSI Catcher</div>
+              <div class="sensor-model mono">MEMS Phased Array + Passive RF Probe</div>
+            </div>
+            <span class="sensor-status-badge" style="background:rgba(244,63,94,0.15);color:#f43f5e;border-color:rgba(244,63,94,0.4);">SIGNAL LOCK</span>
+          </div>
+          <p class="sensor-desc">Uses active rotor-noise cancellation to isolate human distress cries while simultaneously triangulating passive cellular/Wi-Fi/BLE pings from survivors' mobile phones even when out of cell tower coverage.</p>
+          <div class="sensor-specs mono">
+            <div class="sensor-spec-item"><span>ACOUSTIC FILTER</span><span>Deep-Learning Rotor Cancellation</span></div>
+            <div class="sensor-spec-item"><span>RF BEACON LOCK</span><span>457 kHz Avalanche Transceiver</span></div>
+            <div class="sensor-spec-item"><span>LOCATING ACCURACY</span><span>&plusmn;0.8m Triangulation CEP</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 5: FLEET DIAGNOSTICS                                -->
+    <!-- ======================================================== -->
+    <div class="view-page" id="viewFleet">
+      <div class="page-header">
+        <div class="page-tag mono">AIRBORNE FLEET HEALTH &amp; TELEMETRY</div>
+        <h1 class="page-title">Fleet Status &amp; Mesh Diagnostics</h1>
+        <p class="page-subtitle">
+          Deep health telemetry for all 10 SAR-X4 UAVs: battery capacity, RF mesh signal, edge compute load, assigned sectors, and Return-to-Launch controls.
+        </p>
+      </div>
+
+      <div class="fleet-reassign-alert-banner mono" id="fleetReassignAlertBanner" style="display: none;">
+        <div class="alert-content">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            <div style="font-weight: 700; color: #fff;" id="fleetAlertTitle">CRITICAL FLEET EVENT DETECTED</div>
+            <div style="font-size: 0.72rem; color: var(--text-secondary);" id="fleetAlertSubtitle">One or more drones have dropped below 20% battery or lost connection. Reassign search sectors to maintain full disaster grid coverage.</div>
+          </div>
+        </div>
+        <button type="button" class="btn-console primary small" id="btnFleetQuickReassign">
+          ⚡ ONE-CLICK SECTOR REASSIGNMENT
+        </button>
+      </div>
+
+      <div class="kpi-row-grid mono" style="margin-bottom: 24px;">
+        <div class="kpi-card">
+          <span class="kpi-lbl">ACTIVE DRONES ONLINE</span>
+          <span class="kpi-val" id="fleetKpiActive" style="color: var(--accent-emerald);">10 / 10</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">AVERAGE FLEET BATTERY</span>
+          <span class="kpi-val" id="fleetKpiAvgBat" style="color: var(--accent-emerald);">100.0%</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">RF MESH LINK HEALTH</span>
+          <span class="kpi-val" id="fleetKpiMesh" style="color: var(--accent-emerald);">100% NOMINAL</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">TOTAL AREA SEARCHED</span>
+          <span class="kpi-val" id="fleetKpiArea" style="color: #fff;">0.0 km²</span>
+        </div>
+      </div>
+
+      <div class="fleet-page-grid" id="fleetPageGrid"></div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 6: MISSION LOG                                      -->
+    <!-- ======================================================== -->
+    <div class="view-page" id="viewLogs">
+      <div class="page-header">
+        <div class="page-tag mono">OFFICIAL RESCUE AUDIT TRAIL</div>
+        <h1 class="page-title">Mission Event Log &amp; Decision Transcript</h1>
+        <p class="page-subtitle">
+          Immutable chronological transcript capturing every swarm event: Bayesian waypoint updates, gossip consensus, hazard avoidances, possible detections, human operator confirmations, and manual notes.
+        </p>
+      </div>
+
+      <div class="manual-log-entry-card mono">
+        <input type="text" id="manualLogInput" class="planner-field-input" placeholder="Type manual responder note (e.g. 'Ground rescue team deployed at North staging base')...">
+        <button type="button" class="btn-console primary" id="btnAddManualLogNote">
+          + ADD OPERATOR NOTE
+        </button>
+      </div>
+
+      <div class="log-toolbar mono">
+        <div class="log-filter-group">
+          <span style="font-size: 0.72rem; color: var(--text-muted);">FILTER:</span>
+          <button class="filter-pill active" data-logcat="all">ALL EVENTS</button>
+          <button class="filter-pill" data-logcat="DETECTION">DETECTIONS</button>
+          <button class="filter-pill" data-logcat="CONFIRMATION">CONFIRMATIONS</button>
+          <button class="filter-pill" data-logcat="HAZARD">HAZARDS</button>
+          <button class="filter-pill" data-logcat="FLEET">FLEET ALERTS</button>
+          <button class="filter-pill" data-logcat="OPERATOR">OPERATOR NOTES</button>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="logSearchInput" class="planner-field-input mono" placeholder="Search keywords..." style="width: 180px; font-size: 0.74rem;">
+          <button class="btn-console mono" id="btnExportLogJson" style="font-size: 0.72rem; padding: 6px 12px;">
+            📥 EXPORT JSON
+          </button>
+          <button class="btn-console primary mono" id="btnExportLogCsv" style="font-size: 0.72rem; padding: 6px 12px;">
+            📄 EXPORT CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="log-table-container">
         <table class="data-table mono">
           <thead>
             <tr>
-              <th>UAV Call sign</th>
-              <th>Battery %</th>
-              <th>Assigned Search Sector</th>
-              <th>Payload Role</th>
-              <th>RF Signal</th>
-              <th>Operational State</th>
+              <th style="width: 110px;">Mission Time</th>
+              <th style="width: 90px;">Severity</th>
+              <th style="width: 120px;">Category</th>
+              <th style="width: 130px;">Source Node</th>
+              <th>Event Summary &amp; Algorithmic Rationale</th>
+              <th style="width: 160px;">Coordinates</th>
             </tr>
           </thead>
-          <tbody id="plannerSectorTableBody">
-            <!-- Injected dynamically by app.js -->
-          </tbody>
+          <tbody id="missionLogTableBody"></tbody>
         </table>
       </div>
+    </div>
 
-      <!-- Card 4: Proposed Plan Review & Start Trigger (CRITICAL RESCUE WORKFLOW) -->
-      <div class="console-card plan-review-card">
-        <div class="console-card-header">
-          <span class="console-card-title mono" style="color: var(--accent-emerald);">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            MISSION PLAN REVIEW &amp; AUTHORIZATION
-          </span>
-          <span class="badge-emerald mono">READY FOR DISPATCH</span>
+    <!-- ======================================================== -->
+    <!-- AUTHENTICATED OPERATOR PROFILE MODAL                     -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="operatorModal">
+      <div class="modal-content glass-panel" style="max-width: 460px;">
+        <div class="modal-header">
+          <div class="modal-title mono">AUTHENTICATED RESCUER CREDENTIALS</div>
+          <button class="modal-close" id="btnCloseOperatorModal">&times;</button>
         </div>
-
-        <div class="plan-review-body mono">
-          <div class="plan-review-stat">
-            <span class="stat-lbl">MISSION:</span>
-            <span class="stat-val" id="reviewMissionName">Operation Alpine Reach</span>
+        <div class="modal-body">
+          <div id="sessionProfileDisplay" class="mono" style="background: #141414; border: 1px solid var(--border-subtle); border-radius: 6px; padding: 14px; font-size: 0.75rem; line-height: 1.8;">
+            Loading rescuer session...
           </div>
-          <div class="plan-review-stat">
-            <span class="stat-lbl">SEARCH AREA:</span>
-            <span class="stat-val">25.0 km² (5km × 5km) within 10km perimeter</span>
-          </div>
-          <div class="plan-review-stat">
-            <span class="stat-lbl">AVAILABLE FLEET:</span>
-            <span class="stat-val" id="reviewDroneCount">10 / 10 Hexa-Rotor UAVs</span>
-          </div>
-          <div class="plan-review-stat">
-            <span class="stat-lbl">HAZARD ZONES:</span>
-            <span class="stat-val" id="reviewHazardCount">4 Active Exclusion Corridors</span>
+          <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px;">
+            <button type="button" class="btn-console danger mono" id="btnConfirmLogout" style="width: 100%; justify-content: center;">
+              🚪 SIGN OUT &amp; RETURN TO LOGIN SCREEN
+            </button>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px;">
-          <button class="btn-console primary large mono" id="btnApplyAndStartPlan">
-            🚀 APPLY &amp; START PROPOSED SEARCH PLAN
-          </button>
+    <!-- ======================================================== -->
+    <!-- HELP & SYSTEM DOCUMENTATION MODAL                        -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="helpModal">
+      <div class="modal-content glass-panel" style="max-width: 680px;">
+        <div class="modal-header">
+          <div class="modal-title mono">AEGIS SAR // SYSTEM ARCHITECTURE &amp; MULTI-AGENT PRINCIPLES</div>
+          <button class="modal-close" id="btnCloseHelpModal">&times;</button>
         </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ======================================================== -->
-  <!-- VIEW 3: VICTIM REPORTS (SEARCH DETECTIONS & VERIFICATION)  -->
-  <!-- ======================================================== -->
-  <div class="view-page" id="viewReports">
-    <div class="page-header">
-      <div class="page-tag mono">SEARCH DETECTIONS &amp; CASUALTY VERIFICATION</div>
-      <h1 class="page-title">Victim Reports &amp; Sensor Evidence</h1>
-      <p class="page-subtitle">
-        Review location coordinates, simulated aerial thermal snapshots, detection confidence %, and timestamps for every possible subject.
-      </p>
-    </div>
-
-    <!-- Mandatory Ethical SAR Protocol Banner -->
-    <div class="protocol-warning-banner mono">
-      <div class="protocol-icon">🛡️</div>
-      <div class="protocol-text">
-        <strong>STRICT SEARCH &amp; RESCUE PROTOCOL:</strong> Automated sensor detections represent probabilistic algorithm hypotheses. Never label a detection as a confirmed victim based solely on automated AI. A human operator must review sensor evidence and explicitly confirm each casualty before ground rescue or Medevac teams are dispatched.
-      </div>
-    </div>
-
-    <!-- Reports KPI Bar -->
-    <div class="kpi-row-grid mono">
-      <div class="kpi-card">
-        <span class="kpi-lbl">TOTAL TARGETS MONITORED</span>
-        <span class="kpi-val" id="repKpiTotal" style="color: #fff;">10</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-lbl">POSSIBLE DETECTIONS</span>
-        <span class="kpi-val" id="repKpiLocated" style="color: #38bdf8;">0 / 10</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-lbl">CONFIRMED (DISPATCHED)</span>
-        <span class="kpi-val" id="repKpiDispatched" style="color: var(--accent-emerald);">0 RESCUES</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-lbl">PENDING OPERATOR REVIEW</span>
-        <span class="kpi-val" id="repKpiPending" style="color: var(--accent-amber);">10 TARGETS</span>
-      </div>
-    </div>
-
-    <!-- Filter Pills -->
-    <div class="filter-pill-bar mono">
-      <button class="filter-pill active" data-filter="all">ALL TARGETS (10)</button>
-      <button class="filter-pill" data-filter="pending">PENDING OPERATOR REVIEW</button>
-      <button class="filter-pill" data-filter="verified">CONFIRMED (DISPATCHED)</button>
-      <button class="filter-pill" data-filter="false-alarm">DISMISSED FALSE ALARMS</button>
-      <button class="filter-pill" data-filter="critical">CRITICAL PRIORITY</button>
-      <button class="filter-pill" data-filter="urgent">URGENT PRIORITY</button>
-      <button class="filter-pill" data-filter="stable">STABLE</button>
-    </div>
-
-    <!-- Dynamic Victim Report Cards Grid with Aerial Thermal Snapshots -->
-    <div class="victim-reports-grid" id="victimReportsList">
-      <!-- Injected dynamically by app.js -->
-    </div>
-  </div>
-
-  <!-- ======================================================== -->
-  <!-- VIEW 4: FLEET STATUS (BATTERY, RF TELEMETRY & REASSIGN)  -->
-  <!-- ======================================================== -->
-  <div class="view-page" id="viewFleet">
-    <div class="page-header">
-      <div class="page-tag mono">AIRBORNE FLEET HEALTH &amp; TELEMETRY</div>
-      <h1 class="page-title">Fleet Status &amp; Mesh Diagnostics</h1>
-      <p class="page-subtitle">
-        Deep health telemetry for all 10 SAR-X4 UAVs: battery capacity, RF mesh signal, edge compute load, assigned sectors, and Return-to-Launch controls.
-      </p>
-    </div>
-
-    <!-- Proactive Low-Battery / Disconnect Reassignment Banner -->
-    <div class="fleet-reassign-alert-banner mono" id="fleetReassignAlertBanner" style="display: none;">
-      <div class="alert-content">
-        <span class="alert-icon">⚠️</span>
-        <div>
-          <div style="font-weight: 700; color: #fff;" id="fleetAlertTitle">CRITICAL FLEET EVENT DETECTED</div>
-          <div style="font-size: 0.72rem; color: var(--text-secondary);" id="fleetAlertSubtitle">One or more drones have dropped below 20% battery or lost connection. Reassign search sectors to maintain full disaster grid coverage.</div>
-        </div>
-      </div>
-      <button type="button" class="btn-console primary small" id="btnFleetQuickReassign">
-        ⚡ ONE-CLICK SECTOR REASSIGNMENT
-      </button>
-    </div>
-
-    <!-- Swarm Overview Metrics -->
-    <div class="kpi-row-grid mono" style="margin-bottom: 24px;">
-      <div class="kpi-card">
-        <span class="kpi-lbl">ACTIVE DRONES ONLINE</span>
-        <span class="kpi-val" id="fleetKpiActive" style="color: var(--accent-emerald);">10 / 10</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-lbl">AVERAGE FLEET BATTERY</span>
-        <span class="kpi-val" id="fleetKpiAvgBat" style="color: var(--accent-emerald);">100.0%</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-lbl">RF MESH LINK HEALTH</span>
-        <span class="kpi-val" id="fleetKpiMesh" style="color: var(--accent-emerald);">100% NOMINAL</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-lbl">TOTAL AREA SEARCHED</span>
-        <span class="kpi-val" id="fleetKpiArea" style="color: #fff;">0.0 km²</span>
-      </div>
-    </div>
-
-    <!-- Detailed 10-Drone Telemetry Cards Grid -->
-    <div class="fleet-page-grid" id="fleetPageGrid">
-      <!-- Injected dynamically by app.js -->
-    </div>
-  </div>
-
-  <!-- ======================================================== -->
-  <!-- VIEW 5: MISSION LOG (CHRONOLOGICAL AUDIT TRAIL)          -->
-  <!-- ======================================================== -->
-  <div class="view-page" id="viewLogs">
-    <div class="page-header">
-      <div class="page-tag mono">OFFICIAL RESCUE AUDIT TRAIL</div>
-      <h1 class="page-title">Mission Event Log &amp; Decision Transcript</h1>
-      <p class="page-subtitle">
-        Immutable chronological transcript capturing every swarm event: Bayesian waypoint updates, gossip consensus, hazard avoidances, possible detections, human operator confirmations, and manual notes.
-      </p>
-    </div>
-
-    <!-- Manual Operator Note Entry Form -->
-    <div class="manual-log-entry-card mono">
-      <input type="text" id="manualLogInput" class="planner-field-input" placeholder="Type manual responder note (e.g. 'Ground rescue team deployed at North staging base')...">
-      <button type="button" class="btn-console primary" id="btnAddManualLogNote">
-        + ADD OPERATOR NOTE
-      </button>
-    </div>
-
-    <div class="log-toolbar mono">
-      <div class="log-filter-group">
-        <span style="font-size: 0.72rem; color: var(--text-muted);">FILTER:</span>
-        <button class="filter-pill active" data-logcat="all">ALL EVENTS</button>
-        <button class="filter-pill" data-logcat="DETECTION">DETECTIONS</button>
-        <button class="filter-pill" data-logcat="CONFIRMATION">CONFIRMATIONS</button>
-        <button class="filter-pill" data-logcat="HAZARD">HAZARDS</button>
-        <button class="filter-pill" data-logcat="FLEET">FLEET ALERTS</button>
-        <button class="filter-pill" data-logcat="OPERATOR">OPERATOR NOTES</button>
-      </div>
-
-      <div style="display: flex; gap: 8px;">
-        <input type="text" id="logSearchInput" class="planner-field-input mono" placeholder="Search keywords..." style="width: 180px; font-size: 0.74rem;">
-        <button class="btn-console mono" id="btnExportLogJson" style="font-size: 0.72rem; padding: 6px 12px;">
-          📥 EXPORT JSON
-        </button>
-        <button class="btn-console primary mono" id="btnExportLogCsv" style="font-size: 0.72rem; padding: 6px 12px;">
-          📄 EXPORT CSV
-        </button>
-      </div>
-    </div>
-
-    <!-- Log Table -->
-    <div class="log-table-container">
-      <table class="data-table mono">
-        <thead>
-          <tr>
-            <th style="width: 110px;">Mission Time</th>
-            <th style="width: 90px;">Severity</th>
-            <th style="width: 120px;">Category</th>
-            <th style="width: 130px;">Source Node</th>
-            <th>Event Summary &amp; Algorithmic Rationale</th>
-            <th style="width: 160px;">Coordinates</th>
-          </tr>
-        </thead>
-        <tbody id="missionLogTableBody">
-          <!-- Injected dynamically by app.js -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ======================================================== -->
-  <!-- OPERATOR PROFILE SELECTOR MODAL (HONEST & PRACTICAL)     -->
-  <!-- ======================================================== -->
-  <div class="modal-overlay" id="operatorModal">
-    <div class="modal-content" style="max-width: 480px;">
-      <div class="modal-header">
-        <div class="modal-title mono">
-          OPERATOR PROFILE &amp; DISPATCH ROLE
-        </div>
-        <button class="modal-close" id="btnCloseOperatorModal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;">
-          Select your search-and-rescue dispatch role for accountability in the mission audit transcript:
-        </p>
-        
-        <div class="operator-presets-list mono">
-          <div class="operator-preset-item active" data-callsign="SARAH CHEN [INCIDENT COMMANDER]">
-            <div style="font-weight: 600; color: #fff;">Sarah Chen</div>
-            <div style="font-size: 0.72rem; color: var(--accent-emerald);">Incident Commander // Mountain SAR Lead</div>
+        <div class="modal-body">
+          <div class="help-section">
+            <h3 class="help-heading">1. Decentralized Multi-Agent Search Principles</h3>
+            <p class="help-text">
+              Each drone maintains an onboard probability belief map of the 25 km² disaster grid and plans trajectories along maximum entropy gradients without relying on a single point of failure.
+            </p>
           </div>
-          <div class="operator-preset-item" data-callsign="MARCUS BERG [AIR OPERATIONS]">
-            <div style="font-weight: 600; color: #fff;">Marcus Berg</div>
-            <div style="font-size: 0.72rem; color: var(--text-muted);">Air Operations Director // Fleet Controller</div>
+          <div class="help-section">
+            <h3 class="help-heading">2. Edge AI Thermal &amp; Multi-Sensor Inference</h3>
+            <p class="help-text">
+              Onboard Jetson Orin modules run <code>SAR-YOLOv9-Edge-v3</code> and <code>YOLOv8-Thermal-SAR v2.4</code> over radiometric FLIR LWIR imagery, syncing 512-dimensional feature vectors with a PostgreSQL / Supabase <code>pgvector</code> database containing 10,240 trained thermal signatures.
+            </p>
           </div>
-          <div class="operator-preset-item" data-callsign="ELENA ROSTOVA [TRIAGE &amp; MEDICAL]">
-            <div style="font-weight: 600; color: #fff;">Dr. Elena Rostova</div>
-            <div style="font-size: 0.72rem; color: var(--text-muted);">Triage Director // Medical Evacuation Coordinator</div>
+          <div class="help-section">
+            <h3 class="help-heading">3. Ethical Human-in-the-Loop Casualty Verification</h3>
+            <p class="help-text">
+              Automated sensor detections are treated strictly as probabilistic hypotheses. Ground rescue and medevac units are never dispatched without explicit human rescuer confirmation.
+            </p>
           </div>
         </div>
-
-        <div style="margin-top: 14px;">
-          <label class="planner-field-label mono">CUSTOM OPERATOR NAME</label>
-          <input type="text" id="customOperatorName" class="planner-field-input mono" placeholder="e.g. Alex Rivera [Field Coordinator]">
-        </div>
-
-        <div style="margin-top: 18px; display: flex; justify-content: flex-end; gap: 8px;">
-          <button type="button" class="btn-console primary mono" id="btnConfirmOperatorProfile" style="width: 100%; justify-content: center;">
-            SAVE OPERATOR PROFILE
-          </button>
-        </div>
       </div>
     </div>
-  </div>
 
-  <!-- ======================================================== -->
-  <!-- HELP & SYSTEM DOCUMENTATION MODAL                        -->
-  <!-- ======================================================== -->
-  <div class="modal-overlay" id="helpModal">
-    <div class="modal-content" style="max-width: 680px;">
-      <div class="modal-header">
-        <div class="modal-title mono">
-          AEGIS SAR // SYSTEM ARCHITECTURE &amp; MULTI-AGENT PRINCIPLES
-        </div>
-        <button class="modal-close" id="btnCloseHelpModal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="help-section">
-          <h3 class="help-heading">1. Decentralized Multi-Agent Search Principles</h3>
-          <p class="help-text">
-            Rather than relying on a single centralized ground control station that can fail in rugged mountains or degraded RF environments, AEGIS uses decentralized information-gain path planning. Each drone maintains an onboard probability belief map of the 25 km² disaster grid and plans trajectories along maximum entropy gradients.
-          </p>
-        </div>
-
-        <div class="help-section">
-          <h3 class="help-heading">2. Ad-Hoc RF Mesh Gossip Consensus</h3>
-          <p class="help-text">
-            Drones communicate using localized peer-to-peer gossip packets over a 915 MHz RF mesh link (effective radio line-of-sight &le; 1,200m). When two drones fly within communication range, they fuse their belief maps. In areas separated by mountain ridges, relay drones bridge the partitioned clusters.
-          </p>
-        </div>
-
-        <div class="help-section">
-          <h3 class="help-heading">3. Dynamic Voronoi Partitioning &amp; Failover</h3>
-          <p class="help-text">
-            If a drone runs out of battery, experiences motor loss, or is disabled by mid-air turbulence, neighboring drones automatically detect the missing heartbeat within 12 seconds and dynamically adjust their search boundaries using weighted Voronoi tessellation to guarantee zero coverage gaps.
-          </p>
-        </div>
-
-        <div class="help-section">
-          <h3 class="help-heading">4. Ethical Human-in-the-Loop Casualty Verification</h3>
-          <p class="help-text">
-            In accordance with international search and rescue best practices, automated thermal and optical sensor detections are treated strictly as probabilistic hypotheses. Ground rescue and medevac units are never dispatched without explicit human operator confirmation.
-          </p>
-        </div>
-
-        <div style="margin-top: 16px; padding: 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 0.72rem; color: var(--text-muted);" class="mono">
-          NOTICE: All maps, telemetry, drones, and casualty scenarios in this application are simulated demonstration data for search and rescue operational planning.
-        </div>
-      </div>
-    </div>
-  </div>
+  </div><!-- end #dashboardRoot -->
 
   <script src="vendor/leaflet.js"></script>
+  <script src="auth.js"></script>
   <script src="simulation-engine.js"></script>
   <script src="benchmark-engine.js"></script>
   <script src="app.js"></script>
