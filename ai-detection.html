@@ -817,11 +817,31 @@
     }
 
     /**
-     * 3. Run Detection (POST /detect with FormData field "image" per /docs OpenAPI schema)
-     * Do NOT manually set the multipart Content-Type header; browser sets boundary automatically.
+     * Ensure the upload payload is an actual File/Blob object (never a string, URL, or raw DOM element).
+     * If an HTMLCanvasElement is provided, convert it to a PNG File before uploading.
+     */
+    async function ensureValidImageFile(source) {
+      if (source instanceof File) {
+        return source;
+      }
+      if (source instanceof Blob) {
+        return new File([source], 'thermal-upload.png', { type: source.type || 'image/png' });
+      }
+      if (typeof HTMLCanvasElement !== 'undefined' && source instanceof HTMLCanvasElement) {
+        const blob = await new Promise((resolve) => source.toBlob(resolve, 'image/png'));
+        if (!blob) throw new Error('Failed to convert canvas snapshot to image Blob.');
+        return new File([blob], 'canvas-capture.png', { type: 'image/png' });
+      }
+      throw new Error('No valid image File object selected. Please choose a JPG, PNG, or WEBP file.');
+    }
+
+    /**
+     * 3. Run Detection (POST /detect with FormData field "image")
+     * Do NOT manually set the multipart Content-Type header; the browser generates the multipart boundary.
      */
     async function runDetection() {
-      if (!selectedImageFile) {
+      const fileFromInput = (imageFileInput && imageFileInput.files && imageFileInput.files[0]) || selectedImageFile;
+      if (!fileFromInput) {
         setStatusBanner('error', 'Please select an image first.');
         return;
       }
@@ -834,22 +854,21 @@
 
       btnRunDetection.disabled = true;
       btnRunDetection.textContent = '⏳ RUNNING DETECTION...';
-      setStatusBanner('loading', `Uploading "${selectedImageFile.name}" to POST ${baseUrl}/detect (field: "image")...`, true);
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), DETECT_TIMEOUT_MS);
 
       try {
+        const imageFile = await ensureValidImageFile(fileFromInput);
+        selectedImageFile = imageFile;
+
+        setStatusBanner('loading', `Uploading "${imageFile.name}" (${imageFile.size} bytes) to POST ${baseUrl}/detect (field: "image")...`, true);
+
         const formData = new FormData();
-        formData.append('image', selectedImageFile);
-        formData.append('file', selectedImageFile);
+        formData.append("image", imageFile, imageFile.name || "upload.png");
 
         const response = await fetch(`${baseUrl}/detect`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'ngrok-skip-browser-warning': 'true'
-          },
+          method: "POST",
           body: formData,
           signal: controller.signal
         });
@@ -873,6 +892,9 @@
 
         lastDetectionResponse = data;
         renderDetectionResponse(data);
+
+        headerApiDot.style.background = 'var(--accent-emerald)';
+        headerApiStatusText.textContent = 'API: ONLINE';
 
         const count = typeof data.detection_count === 'number'
           ? data.detection_count

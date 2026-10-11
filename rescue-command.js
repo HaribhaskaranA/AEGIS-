@@ -405,11 +405,31 @@ function clearOverlayCanvas() {
 }
 
 /**
+ * Ensure the upload payload is an actual File/Blob object (never a string, URL, or raw DOM element).
+ * If an HTMLCanvasElement is provided, convert it to a PNG File before uploading.
+ */
+async function ensureValidImageFile(source) {
+  if (source instanceof File) {
+    return source;
+  }
+  if (source instanceof Blob) {
+    return new File([source], 'thermal-upload.png', { type: source.type || 'image/png' });
+  }
+  if (typeof HTMLCanvasElement !== 'undefined' && source instanceof HTMLCanvasElement) {
+    const blob = await new Promise((resolve) => source.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('Failed to convert canvas snapshot to image Blob.');
+    return new File([blob], 'canvas-capture.png', { type: 'image/png' });
+  }
+  throw new Error('No valid image File object selected. Please choose a JPG, PNG, or WEBP file.');
+}
+
+/**
  * Section B3: Submit Image to POST /detect using FormData("image") per /docs OpenAPI schema
  * Do not manually set the multipart Content-Type header.
  */
 async function runThermalDetection() {
-  if (!selectedImageFile) {
+  const fileFromInput = (rcImageInput && rcImageInput.files && rcImageInput.files[0]) || selectedImageFile;
+  if (!fileFromInput) {
     setAlert('error', 'Please select an image file before running detection.');
     return;
   }
@@ -423,26 +443,25 @@ async function runThermalDetection() {
   const submittingDrone = getSelectedSimulatedDrone();
   btnRunDetection.disabled = true;
   btnRunDetection.textContent = '⏳ RUNNING AI DETECTION...';
-  setAlert(
-    'loading',
-    `Submitting "${selectedImageFile.name}" attributed to ${submittingDrone.id} [SIMULATED] via POST ${baseUrl}/detect (FormData field: "image")...`,
-    true
-  );
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), DETECT_TIMEOUT_MS);
 
   try {
+    const imageFile = await ensureValidImageFile(fileFromInput);
+    selectedImageFile = imageFile;
+
+    setAlert(
+      'loading',
+      `Submitting "${imageFile.name}" (${imageFile.size} bytes) attributed to ${submittingDrone.id} [SIMULATED] via POST ${baseUrl}/detect (FormData field: "image")...`,
+      true
+    );
+
     const formData = new FormData();
-    formData.append('image', selectedImageFile);
-    formData.append('file', selectedImageFile);
+    formData.append("image", imageFile, imageFile.name || "upload.png");
 
     const response = await fetch(`${baseUrl}/detect`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      },
+      method: "POST",
       body: formData,
       signal: controller.signal
     });
@@ -467,10 +486,12 @@ async function runThermalDetection() {
     }
 
     latestApiDetectionPayload = data;
+    rcHeaderApiDot.className = 'rc-status-dot online';
+    rcHeaderApiText.textContent = 'API: ONLINE';
 
     // Display actual response fields & store candidate records
     renderActualDetectionResponse(data, submittingDrone);
-    const createdRecords = appendDetectionsToCandidateQueue(data, submittingDrone, selectedImageFile.name);
+    const createdRecords = appendDetectionsToCandidateQueue(data, submittingDrone, imageFile.name);
 
     setAlert(
       'success',
