@@ -1,0 +1,151 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AEGIS | AI Detection Demo</title>
+<style>
+body{margin:0;background:#091119;color:#e7f0f5;font:16px system-ui,sans-serif;padding:24px}
+main{max-width:850px;margin:auto}
+.panel{background:#111d27;border:1px solid #30404c;border-radius:12px;padding:22px;margin:18px 0}
+h1{color:#3ecf8e}p{color:#b0bec8}
+button{background:#164c37;color:white;border:0;padding:12px 18px;border-radius:7px;cursor:pointer}
+button:disabled{opacity:.5}
+input{display:block;margin:16px 0;max-width:100%}
+img{max-width:100%;max-height:450px;display:block;margin-top:18px}
+.status{padding:12px;background:#0a141b;border-radius:7px;overflow-wrap:anywhere}
+.candidate{border:1px solid #6b502e;background:#211a10;padding:14px;margin:12px 0;border-radius:8px}
+small{color:#ffc77a}code{overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<main>
+<a href="index.html" style="color:#3ecf8e">← Back to AEGIS Console</a>
+<h1>AEGIS // AI Person Detection</h1>
+<p>Experimental image-detection demo using the existing YOLO model.</p>
+
+<div class="panel">
+<h3>01 / Upload image</h3>
+<input id="file" type="file" accept="image/*">
+<img id="preview" hidden alt="Uploaded image preview">
+<p id="health" class="status">Checking AI service…</p>
+<button id="run" disabled>Run AI Detection</button>
+<p id="status" class="status">Choose an image to begin.</p>
+</div>
+
+<div class="panel">
+<h3>02 / Detection results</h3>
+<p id="summary">No results yet.</p>
+<div id="results"></div>
+<p><small>Safety: candidates are unverified. Thermal-image accuracy is not established. No GPS coordinates or survival probability are inferred. Human review is required.</small></p>
+</div>
+</main>
+
+<script>
+const API = "https://slam-slapping-gusty.ngrok-free.dev";
+const fileInput = document.getElementById("file");
+const preview = document.getElementById("preview");
+const run = document.getElementById("run");
+const statusEl = document.getElementById("status");
+const healthEl = document.getElementById("health");
+let chosenFile = null;
+
+async function checkHealth() {
+  try {
+    const response = await fetch(API + "/health");
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const data = await response.json();
+    healthEl.textContent = data.detector_loaded
+      ? "AI service online · Person detector loaded"
+      : "API online, but detector is unavailable.";
+  } catch (e) {
+    healthEl.textContent =
+      "AI service unavailable. Check that Colab and ngrok are still running.";
+  }
+}
+
+fileInput.addEventListener("change", () => {
+  chosenFile = fileInput.files[0] || null;
+  document.getElementById("results").replaceChildren();
+  document.getElementById("summary").textContent = "No results yet.";
+
+  if (!chosenFile) {
+    run.disabled = true;
+    preview.hidden = true;
+    return;
+  }
+  if (!chosenFile.type.startsWith("image/") ||
+      chosenFile.size > 12 * 1024 * 1024) {
+    chosenFile = null;
+    run.disabled = true;
+    statusEl.textContent = "Choose an image under 12 MB.";
+    return;
+  }
+
+  preview.src = URL.createObjectURL(chosenFile);
+  preview.hidden = false;
+  run.disabled = false;
+  statusEl.textContent = "Image ready for analysis.";
+});
+
+run.addEventListener("click", async () => {
+  if (!chosenFile) return;
+  run.disabled = true;
+  statusEl.textContent = "Running detector…";
+  const form = new FormData();
+  form.append("file", chosenFile);
+
+  try {
+    const response = await fetch(API + "/detect", {
+      method: "POST",
+      body: form
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Request failed");
+
+    document.getElementById("summary").textContent =
+      `${data.detection_count} candidate(s) · Image ${data.image_width} × ${data.image_height}`;
+
+    const results = document.getElementById("results");
+    results.replaceChildren();
+
+    if (!data.detections.length) {
+      results.textContent =
+        "No candidates returned. This does not prove the image contains no people.";
+    }
+
+    data.detections.forEach((item, index) => {
+      const card = document.createElement("div");
+      card.className = "candidate";
+
+      const title = document.createElement("h3");
+      title.textContent =
+        `Candidate ${index + 1} — ${(item.confidence * 100).toFixed(2)}% confidence`;
+
+      const box = document.createElement("p");
+      box.textContent = "Bounding box (pixels): " +
+        item.bbox_xyxy.map(n => Number(n).toFixed(1)).join(", ");
+
+      const warning = document.createElement("small");
+      warning.textContent = "Unverified candidate · human review required";
+
+      card.append(title, box, warning);
+      results.appendChild(card);
+    });
+
+    statusEl.textContent = data.warning ||
+      "Detection complete. Review results manually.";
+  } catch (error) {
+    statusEl.textContent =
+      "Detection failed: " + error.message +
+      ". Check the Colab runtime, API and ngrok tunnel.";
+  } finally {
+    run.disabled = !chosenFile;
+  }
+});
+
+checkHealth();
+</script>
+</body>
+</html>
